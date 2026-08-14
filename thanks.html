@@ -177,6 +177,40 @@
     spark:      { label:'SPARK(5回分)',                    cta:'SPARKを開始する',      formKey:'spark', grant:5 }
   };
 
+  function generateSessionId(){
+    var bytes;
+    if(window.crypto && window.crypto.getRandomValues){
+      bytes = new Uint8Array(10);
+      window.crypto.getRandomValues(bytes);
+    } else {
+      bytes = [];
+      for(var i = 0; i < 10; i++){ bytes.push(Math.floor(Math.random() * 256)); }
+    }
+    var hex = Array.prototype.map.call(bytes, function(b){ return ('0' + b.toString(16)).slice(-2); }).join('');
+    return 'SEIZE-' + hex.toUpperCase();
+  }
+
+  // index.html側と全く同じ形式でセッションを作成する(同一オリジンのlocalStorageを共有するため)
+  function createInitialSession(productType){
+    var sess = {
+      sessionId: generateSessionId(),
+      productType: productType,
+      currentQuestion: 0,
+      answers: {},
+      status: 'paid',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      completedAt: null
+    };
+    try{
+      localStorage.setItem('seize_session_' + sess.sessionId, JSON.stringify(sess));
+      var idx = JSON.parse(localStorage.getItem('seize_sessions_index') || '[]');
+      idx.unshift({ sessionId: sess.sessionId, productType: sess.productType, status: sess.status, updatedAt: sess.updatedAt });
+      localStorage.setItem('seize_sessions_index', JSON.stringify(idx.slice(0, 50)));
+    }catch(e){ /* 保存できなくても致命的ではない(その場合はform遷移のみになる) */ }
+    return sess.sessionId;
+  }
+
   function renderThanks(){
     var params = new URLSearchParams(window.location.search);
     var planKey = params.get('plan');
@@ -199,9 +233,13 @@
         '<li class="is-current"><span class="num">3</span><span>下のボタンから開始画面へ進む</span></li>' +
         '<li><span class="num">4</span><span>ヒアリングに回答してSeizeを開始</span></li>';
 
+      var sessionId = createInitialSession(info.formKey);
+      var qs = 'form=' + encodeURIComponent(info.formKey) + '&session=' + encodeURIComponent(sessionId);
+      if(info.grant){ qs += '&grant=' + info.grant; }
+
       var mainBtn = document.createElement('a');
       mainBtn.className = 'btn-primary';
-      mainBtn.href = 'index.html?form=' + encodeURIComponent(info.formKey) + (info.grant ? '&grant=' + info.grant : '');
+      mainBtn.href = 'index.html?' + qs;
       mainBtn.textContent = info.cta + ' →';
       ctaWrap.appendChild(mainBtn);
 

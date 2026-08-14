@@ -381,6 +381,14 @@
   .hearing-tips{margin-top:18px; text-align:left; display:flex; flex-direction:column; gap:10px;}
   .hearing-tips p{font-size:12.5px; color:var(--ink-soft); line-height:1.8; background:var(--paper-dim); border:1px solid var(--line); border-radius:var(--radius); padding:12px 16px;}
   .hearing-tips b{display:block; font-size:11.5px; color:var(--mint-deep); font-family:var(--mono); letter-spacing:0.04em; margin-bottom:4px;}
+  .resume-copy-btn{margin-left:6px; font-size:11.5px; color:var(--mint-deep); background:none; border:1px solid var(--mint-deep); border-radius:14px; padding:3px 10px;}
+  .resume-copy-btn:hover{background:var(--mint-deep); color:var(--paper);}
+  .resume-copied{margin-left:6px; font-size:11.5px; color:var(--mint-deep); font-weight:700;}
+  .hearing-resume{text-align:center; padding:20px 0;}
+  .hearing-resume-text{font-family:var(--serif); font-size:19px; color:var(--navy-900); margin-bottom:22px;}
+  .hearing-resume-actions{display:flex; flex-direction:column; gap:12px; align-items:center;}
+  .hearing-resume-actions .btn-primary{width:100%; max-width:320px; justify-content:center;}
+  .hearing-resume-actions .btn-ghost{border:none;}
   .hearing-progress-wrap{max-width:640px; margin:0 auto 36px;}
   .hearing-progress-bar{height:4px; background:var(--line); border-radius:4px; overflow:hidden;}
   .hearing-progress-fill{height:100%; background:var(--mint-deep); transition:width .3s;}
@@ -583,7 +591,7 @@
       <h2 id="hearing-title">詳細ヒアリング</h2>
       <div class="hearing-tips">
         <p><b>精度について</b>すべての項目に回答する必要はありませんが、具体的にお答えいただいた項目が多いほど、成果物・AI指示書の精度が高まります。「わからない」「特になし」も立派な回答です。空欄のままでも進められます。</p>
-        <p><b>保存・再開について</b>回答内容は、今お使いのこのブラウザに自動保存されます(サーバーには送信されません)。同じ端末・同じブラウザで再度このページを開けば、続きから再開できます。別の端末やブラウザ、ブラウザのキャッシュ削除後は保存内容が失われますのでご注意ください。</p>
+        <p><b>保存・再開について</b>回答内容は自動保存されています。電話がかかってきたり、他のアプリに切り替えたりして中断しても大丈夫です。同じ端末・同じブラウザでこのページを開き直せば、続きから再開できます。<button class="resume-copy-btn" onclick="copyResumeLink()">続きのURLをコピー</button><span class="resume-copied" id="resume-link-copied" hidden>コピーしました</span></p>
       </div>
       <p class="hearing-set-note" id="hearing-set-note" hidden></p>
     </div>
@@ -594,11 +602,18 @@
     </div>
 
     <div class="hearing-card">
+      <div class="hearing-resume" id="hearing-resume" hidden>
+        <p class="hearing-resume-text">前回の続きがあります。</p>
+        <div class="hearing-resume-actions">
+          <button class="btn-primary" onclick="resumeContinue()">続きから再開する →</button>
+          <button class="btn-ghost" onclick="resumeRestart()">最初からやり直す</button>
+        </div>
+      </div>
       <div id="hearing-step-title" class="hearing-step-title"></div>
       <div id="hearing-step-body"></div>
     </div>
 
-    <div class="hearing-nav">
+    <div class="hearing-nav" id="hearing-nav">
       <button class="btn-ghost" id="hearing-back" onclick="hearingBack()">← 前へ</button>
       <button class="btn-primary" id="hearing-next" onclick="hearingNext()">次へ →</button>
     </div>
@@ -1753,30 +1768,114 @@ QUESTION_SETS.setFull = [
 ];
 
 // ============================================================
-// フォーム状態管理
+// 購入セッション管理(同一端末・同一ブラウザでの途中再開に対応)
+// ------------------------------------------------------------
+// SeizeはGitHub Pages上の静的サイトとして構成されており、サーバー側で
+// ユーザーを認証・管理する仕組みは持ちません。そのため、この仕組みは
+// 「同一端末・同一ブラウザ内であれば、購入ごとに独立した進行状況を
+// 自動保存し、後から続きから再開できる」ことを実現するものです。
+// 別端末・別ブラウザからの再開や、ブラウザデータの削除後の復元には
+// 対応していません(会員登録機能は導入しない、という方針のためです)。
 // ============================================================
-var hearingState = { plan:null, stepIndex:0, answers:{} };
+var SESSION_INDEX_KEY = 'seize_sessions_index';
 
-function storageKey(plan){ return 'seize_hearing_' + plan; }
+// 現在進行中のヒアリングの状態(メモリ上の作業用コピー)
+var hearingState = { plan:null, stepIndex:0, answers:{}, sessionId:null };
 
-function loadHearingState(plan){
-  try{
-    var raw = localStorage.getItem(storageKey(plan));
-    if(raw){
-      var saved = JSON.parse(raw);
-      return { answers: saved.answers || {}, stepIndex: saved.stepIndex || 0 };
-    }
-  }catch(e){ /* localStorageが使えない環境ではメモリ上のみで動作 */ }
-  return { answers:{}, stepIndex:0 };
+function generateSessionId(){
+  var bytes;
+  if(window.crypto && window.crypto.getRandomValues){
+    bytes = new Uint8Array(10);
+    window.crypto.getRandomValues(bytes);
+  } else {
+    bytes = [];
+    for(var i = 0; i < 10; i++){ bytes.push(Math.floor(Math.random() * 256)); }
+  }
+  var hex = Array.prototype.map.call(bytes, function(b){ return ('0' + b.toString(16)).slice(-2); }).join('');
+  return 'SEIZE-' + hex.toUpperCase();
 }
 
-function saveHearingState(){
+function sessionKey(id){ return 'seize_session_' + id; }
+
+function readSessionIndex(){
+  try{ return JSON.parse(localStorage.getItem(SESSION_INDEX_KEY) || '[]'); }
+  catch(e){ return []; }
+}
+function writeSessionIndex(list){
+  try{ localStorage.setItem(SESSION_INDEX_KEY, JSON.stringify(list)); }
+  catch(e){ /* 保存できなくても致命的ではない */ }
+}
+function updateSessionIndexEntry(sess){
+  var list = readSessionIndex();
+  var found = false;
+  for(var i = 0; i < list.length; i++){
+    if(list[i].sessionId === sess.sessionId){
+      list[i] = { sessionId: sess.sessionId, productType: sess.productType, status: sess.status, updatedAt: sess.updatedAt };
+      found = true;
+      break;
+    }
+  }
+  if(!found){
+    list.unshift({ sessionId: sess.sessionId, productType: sess.productType, status: sess.status, updatedAt: sess.updatedAt });
+  }
+  writeSessionIndex(list.slice(0, 50)); // 肥大化を防ぐため直近50件のみ保持
+}
+
+function loadSession(id){
+  if(!id) return null;
   try{
-    localStorage.setItem(storageKey(hearingState.plan), JSON.stringify({
-      answers: hearingState.answers,
-      stepIndex: hearingState.stepIndex
-    }));
-  }catch(e){ /* 保存できなくても致命的ではないため無視 */ }
+    var raw = localStorage.getItem(sessionKey(id));
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+
+function saveSession(sess){
+  sess.updatedAt = new Date().toISOString();
+  try{ localStorage.setItem(sessionKey(sess.sessionId), JSON.stringify(sess)); }
+  catch(e){ /* 保存できなくても致命的ではない */ }
+  updateSessionIndexEntry(sess);
+}
+
+function createSession(productType){
+  var sess = {
+    sessionId: generateSessionId(),
+    productType: productType,
+    currentQuestion: 0,
+    answers: {},
+    status: 'paid',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    completedAt: null
+  };
+  saveSession(sess);
+  return sess;
+}
+
+// hearingStateの現在値をセッションへ反映・保存する(自動保存の中核)
+function persistHearingSession(){
+  if(!hearingState.sessionId) return;
+  var sess = loadSession(hearingState.sessionId);
+  if(!sess) return;
+  sess.answers = hearingState.answers;
+  sess.currentQuestion = hearingState.stepIndex;
+  if(sess.status === 'paid'){ sess.status = 'progress'; }
+  saveSession(sess);
+}
+
+function copyResumeLink(){
+  if(!hearingState.sessionId) return;
+  var url = window.location.origin + window.location.pathname + '?session=' + hearingState.sessionId;
+  var showCopied = function(){
+    var el = document.getElementById('resume-link-copied');
+    if(!el) return;
+    el.hidden = false;
+    setTimeout(function(){ el.hidden = true; }, 2500);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(showCopied).catch(function(){ fallbackCopy(url, showCopied); });
+  } else {
+    fallbackCopy(url, showCopied);
+  }
 }
 
 // ============================================================
@@ -1800,11 +1899,19 @@ function grantSparkTickets(n){
   setSparkTickets(getSparkTickets() + n);
 }
 
-function startForm(plan){
+function startForm(planParam, sessionIdParam){
+  var plan = planParam;
+  var sess = null;
+
+  if(sessionIdParam){
+    sess = loadSession(sessionIdParam);
+    if(sess){ plan = sess.productType; }
+  }
+
   if(!QUESTION_SETS[plan]) return;
   var meta = PLAN_META[plan];
 
-  if(meta.isSpark){
+  if(!sess && meta.isSpark){
     var tickets = getSparkTickets();
     if(tickets <= 0){
       showSparkNoTickets();
@@ -1812,12 +1919,20 @@ function startForm(plan){
     }
   }
 
-  var restored = loadHearingState(plan);
-  hearingState = { plan: plan, stepIndex: restored.stepIndex, answers: restored.answers };
+  if(!sess){
+    sess = createSession(plan);
+  }
+
+  hearingState = { plan: plan, stepIndex: sess.currentQuestion || 0, answers: sess.answers || {}, sessionId: sess.sessionId };
+
   document.getElementById('hearing').hidden = false;
   document.getElementById('results').hidden = true;
+  document.getElementById('hearing-nav').style.display = '';
   document.getElementById('hearing-back').style.display = '';
   document.getElementById('hearing-next').style.display = '';
+  document.getElementById('hearing-resume').hidden = true;
+  document.getElementById('hearing-step-title').hidden = false;
+  document.getElementById('hearing-step-body').hidden = false;
   document.getElementById('hearing-plan-badge').textContent = meta.name ? (meta.name + '(' + meta.label + ')') : meta.label;
   document.getElementById('hearing-title').textContent = meta.title;
 
@@ -1832,8 +1947,52 @@ function startForm(plan){
     setNote.hidden = true;
   }
 
-  renderHearingStep();
+  // URLに続き用の情報を反映(リロード・ブックマークでも同じ続きに戻れるように)
+  try{
+    var url = new URL(window.location.href);
+    url.searchParams.set('session', sess.sessionId);
+    url.searchParams.delete('form');
+    url.searchParams.delete('grant');
+    window.history.replaceState({}, '', url.toString());
+  }catch(e){ /* URL操作に失敗しても致命的ではない */ }
+
   document.getElementById('hearing').scrollIntoView({behavior:'smooth'});
+
+  if(sess.status === 'completed'){
+    // 完成済みの購入 → 質問には戻さず、成果物を再表示する
+    document.getElementById('hearing').hidden = true;
+    renderResults(sess.productType, sess.answers);
+    return;
+  }
+
+  var hasProgress = (sess.currentQuestion > 0) || Object.keys(sess.answers || {}).length > 0;
+  if(hasProgress){
+    showResumePrompt();
+  } else {
+    renderHearingStep();
+  }
+}
+
+function showResumePrompt(){
+  document.getElementById('hearing-step-title').hidden = true;
+  document.getElementById('hearing-step-body').hidden = true;
+  document.getElementById('hearing-nav').style.display = 'none';
+  document.getElementById('hearing-resume').hidden = false;
+}
+
+function resumeContinue(){
+  document.getElementById('hearing-resume').hidden = true;
+  document.getElementById('hearing-step-title').hidden = false;
+  document.getElementById('hearing-step-body').hidden = false;
+  document.getElementById('hearing-nav').style.display = '';
+  renderHearingStep();
+}
+
+function resumeRestart(){
+  hearingState.answers = {};
+  hearingState.stepIndex = 0;
+  persistHearingSession();
+  resumeContinue();
 }
 
 function showSparkNoTickets(){
@@ -1842,6 +2001,9 @@ function showSparkNoTickets(){
   document.getElementById('hearing-plan-badge').textContent = 'SPARK';
   document.getElementById('hearing-title').textContent = 'ひらめきを言葉にするヒアリング';
   document.getElementById('hearing-set-note').hidden = true;
+  document.getElementById('hearing-resume').hidden = true;
+  document.getElementById('hearing-step-title').hidden = false;
+  document.getElementById('hearing-step-body').hidden = false;
 
   document.getElementById('hearing-progress-fill').style.width = '0%';
   document.getElementById('hearing-progress-label').textContent = 'チケット残数:0';
@@ -1851,8 +2013,7 @@ function showSparkNoTickets(){
     'SPARKのチケットを使い切りました。追加でご購入いただくと、また5回分お使いいただけます。' +
     '</p>' +
     '<button class="btn-primary" onclick="document.getElementById(\'spark\').scrollIntoView({behavior:\'smooth\'}); document.getElementById(\'hearing\').hidden=true;">SPARKを追加購入する</button>';
-  document.getElementById('hearing-back').style.display = 'none';
-  document.getElementById('hearing-next').style.display = 'none';
+  document.getElementById('hearing-nav').style.display = 'none';
   document.getElementById('hearing').scrollIntoView({behavior:'smooth'});
 }
 
@@ -1891,7 +2052,7 @@ function renderHearingStep(){
       if(q.placeholder) input.placeholder = q.placeholder;
       input.addEventListener('input', function(){
         hearingState.answers[q.id] = input.value;
-        saveHearingState();
+        persistHearingSession();
       });
       field.appendChild(input);
 
@@ -1901,7 +2062,7 @@ function renderHearingStep(){
       if(q.placeholder) ta.placeholder = q.placeholder;
       ta.addEventListener('input', function(){
         hearingState.answers[q.id] = ta.value;
-        saveHearingState();
+        persistHearingSession();
       });
       field.appendChild(ta);
 
@@ -1925,7 +2086,7 @@ function renderHearingStep(){
       }
       sel.addEventListener('change', function(){
         hearingState.answers[q.id] = sel.value;
-        saveHearingState();
+        persistHearingSession();
         renderHearingStep();
       });
       field.appendChild(sel);
@@ -1948,7 +2109,7 @@ function renderHearingStep(){
         if(current === opt) inp.checked = true;
         inp.addEventListener('change', function(){
           hearingState.answers[q.id] = opt;
-          saveHearingState();
+          persistHearingSession();
           renderHearingStep();
         });
         lab.appendChild(inp);
@@ -1981,7 +2142,7 @@ function renderHearingStep(){
             arr = arr.filter(function(v){ return v !== opt; });
           }
           hearingState.answers[q.id] = arr;
-          saveHearingState();
+          persistHearingSession();
           renderHearingStep();
         });
         lab.appendChild(inp);
@@ -2011,7 +2172,7 @@ function buildOtherInput(q){
   input.value = hearingState.answers[qOther(q.id)] || '';
   input.addEventListener('input', function(){
     hearingState.answers[qOther(q.id)] = input.value;
-    saveHearingState();
+    persistHearingSession();
   });
   wrap.appendChild(input);
   return wrap;
@@ -2021,7 +2182,7 @@ function hearingNext(){
   var steps = currentSteps();
   if(hearingState.stepIndex < steps.length - 1){
     hearingState.stepIndex++;
-    saveHearingState();
+    persistHearingSession();
     renderHearingStep();
     document.getElementById('hearing').scrollIntoView({behavior:'smooth'});
   } else {
@@ -2032,7 +2193,7 @@ function hearingNext(){
 function hearingBack(){
   if(hearingState.stepIndex > 0){
     hearingState.stepIndex--;
-    saveHearingState();
+    persistHearingSession();
     renderHearingStep();
     document.getElementById('hearing').scrollIntoView({behavior:'smooth'});
   }
@@ -2595,6 +2756,24 @@ function generateOutputs(plan, answers){
     setSparkTickets(Math.max(0, getSparkTickets() - 1));
   }
 
+  // このヒアリングに紐づく購入セッションを「完了」状態にする
+  if(hearingState && hearingState.sessionId && hearingState.plan === plan){
+    var sess = loadSession(hearingState.sessionId);
+    if(sess){
+      sess.answers = answers;
+      sess.currentQuestion = (QUESTION_SETS[plan] || []).length;
+      sess.status = 'completed';
+      sess.completedAt = new Date().toISOString();
+      saveSession(sess);
+    }
+  }
+
+  renderResults(plan, answers);
+}
+
+// 成果物・AI指示書の描画のみを行う(副作用なし)。
+// 完了済みセッションの再表示にも、通常の完了時にも共通で使用する。
+function renderResults(plan, answers){
   // セットプランも含め、常に1つの統合成果物・統合AI指示書を生成する
   var subPlans = [plan];
   var body = document.getElementById('results-body');
@@ -2792,6 +2971,64 @@ function setSaveStatus(idx, text, type){
   }
 }
 
+// ============================================================
+// 保存の共通フォールバック処理
+// 優先順位: ① Web共有API(files) → ② Blob + <a download> → ③ 新規タブで開いて長押し保存
+// これはiPhone Safariで<a download>やpdf.save()が不安定なための対応です。
+// ============================================================
+function isIOS(){
+  return /iP(hone|od|ad)/.test(navigator.userAgent) && !window.MSStream;
+}
+
+function saveBlob(blob, fileName, idx, kindLabel){
+  var file = null;
+  try{ file = new File([blob], fileName, {type: blob.type}); }catch(e){ file = null; }
+
+  // ① Web共有API(ファイル共有に対応している場合。iOS Safari 16.4+ / Android Chromeで有効)
+  if(file && navigator.canShare && navigator.canShare({files:[file]})){
+    navigator.share({files:[file], title:fileName}).then(function(){
+      setSaveStatus(idx, '保存しました', 'success');
+    }).catch(function(err){
+      if(err && err.name === 'AbortError'){
+        // ユーザーが共有をキャンセルしただけなのでエラー扱いにしない
+        setSaveStatus(idx, '', null);
+        return;
+      }
+      fallbackDownload(blob, fileName, idx, kindLabel);
+    });
+    return;
+  }
+
+  fallbackDownload(blob, fileName, idx, kindLabel);
+}
+
+function fallbackDownload(blob, fileName, idx, kindLabel){
+  var url = URL.createObjectURL(blob);
+
+  // ② 通常のダウンロード(Blob URL)を試みる。PC・多くのAndroidブラウザで機能します。
+  try{
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }catch(e){
+    console.error('Seize: ダウンロード試行に失敗', e);
+  }
+
+  // ③ iOS Safariなど<a download>が信頼できない環境では、新規タブでも開き、
+  //    長押し保存(画像)・共有ボタンからの保存(PDF)を案内する。
+  if(isIOS()){
+    window.open(url, '_blank');
+    setSaveStatus(idx, '保存されない場合は、開いた画面を長押しして「' + kindLabel + 'を保存」してください', 'success');
+  } else {
+    setSaveStatus(idx, 'ダウンロードしました', 'success');
+  }
+
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+}
+
 function saveReportAsImage(idx, planKey){
   idx = idx || 0;
   var el = document.getElementById('report-canvas-' + idx);
@@ -2805,13 +3042,13 @@ function saveReportAsImage(idx, planKey){
     }
     return html2canvas(el, {backgroundColor:'#FBFAF7', scale:2, useCORS:true}).then(function(canvas){
       var fileName = (FILE_NAME_MAP[planKey] || 'Seize_report') + '.png';
-      var link = document.createElement('a');
-      link.download = fileName;
-      link.href = canvas.toDataURL('image/png');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setSaveStatus(idx, 'ダウンロードしました', 'success');
+      canvas.toBlob(function(blob){
+        if(!blob){
+          setSaveStatus(idx, 'ファイルの生成に失敗しました。もう一度お試しください。', 'error');
+          return;
+        }
+        saveBlob(blob, fileName, idx, '画像');
+      }, 'image/png');
     });
   }).catch(function(err){
     console.error('Seize: 画像保存に失敗', err);
@@ -2866,8 +3103,8 @@ function saveReportAsPDF(idx, planKey){
       }
 
       var fileName = (FILE_NAME_MAP[planKey] || 'Seize_report') + '.pdf';
-      pdf.save(fileName);
-      setSaveStatus(idx, '保存しました', 'success');
+      var pdfBlob = pdf.output('blob');
+      saveBlob(pdfBlob, fileName, idx, 'PDF');
     });
   }).catch(function(err){
     console.error('Seize: PDF保存に失敗', err);
@@ -2876,12 +3113,13 @@ function saveReportAsPDF(idx, planKey){
 }
 
 // ============================================================
-// ルーティング(購入後の ?form=scout|design|growth|spark を検出)
+// ルーティング(購入後の ?session=xxx / ?form=scout|design|growth|spark を検出)
 // SPARKの場合、?grant=5 が付いていればチケットを付与する
 // ============================================================
 (function(){
   var params = new URLSearchParams(window.location.search);
   var formParam = params.get('form');
+  var sessionParam = params.get('session');
   var grantParam = params.get('grant');
 
   if(formParam === 'spark' && grantParam){
@@ -2889,12 +3127,30 @@ function saveReportAsPDF(idx, planKey){
     if(!isNaN(n) && n > 0){ grantSparkTickets(n); }
   }
 
-  if(formParam && QUESTION_SETS[formParam]){
+  if(sessionParam){
+    window.addEventListener('DOMContentLoaded', function(){
+      startForm(formParam || null, sessionParam);
+    });
+  } else if(formParam && QUESTION_SETS[formParam]){
     window.addEventListener('DOMContentLoaded', function(){
       startForm(formParam);
     });
   }
 })();
+
+// ============================================================
+// 離脱対策の自動保存
+// 電話がかかってきた・他アプリに切り替えた・ブラウザを閉じた、などの
+// ケースでも回答が失われないよう、複数のタイミングで保存する。
+// ============================================================
+window.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'hidden'){ persistHearingSession(); }
+});
+window.addEventListener('pagehide', function(){ persistHearingSession(); });
+setInterval(function(){
+  var hearingEl = document.getElementById('hearing');
+  if(hearingEl && !hearingEl.hidden){ persistHearingSession(); }
+}, 20000);
 </script>
 
 </body>

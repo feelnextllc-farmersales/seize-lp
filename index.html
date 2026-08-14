@@ -7,8 +7,35 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  // 画像/PDF出力ライブラリを、CDN障害時にも読み込めるようフォールバック付きで読み込む
+  (function(){
+    function loadScript(src){
+      return new Promise(function(resolve, reject){
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = function(){ resolve(); };
+        s.onerror = function(){ reject(new Error('load failed: ' + src)); };
+        document.head.appendChild(s);
+      });
+    }
+    function loadWithFallback(urls, i){
+      i = i || 0;
+      if(i >= urls.length) return Promise.reject(new Error('all sources failed'));
+      return loadScript(urls[i]).catch(function(){ return loadWithFallback(urls, i + 1); });
+    }
+    window.__seizeLibsReady = Promise.all([
+      loadWithFallback([
+        'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+        'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'
+      ]),
+      loadWithFallback([
+        'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+        'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'
+      ])
+    ]).then(function(){ return true; }).catch(function(e){ console.error('Seize: 画像/PDF出力ライブラリの読み込みに失敗', e); return false; });
+  })();
+</script>
 <style>
   :root{
     --navy-900:#0E1630;
@@ -383,9 +410,15 @@
   .result-block-label{display:inline-block; font-family:var(--mono); font-size:12px; letter-spacing:0.08em; color:var(--mint-deep); border:1px solid var(--mint-deep); border-radius:20px; padding:5px 14px; margin-bottom:20px;}
   .result-block-grid{display:grid; grid-template-columns:1fr; gap:40px;}
   #report-canvas{background:var(--paper); border:1px solid var(--line); border-radius:6px; box-shadow:0 24px 60px -30px rgba(14,22,48,0.4); padding:36px 32px;}
-  .report-actions{display:flex; gap:12px; margin-top:18px; flex-wrap:wrap;}
+  .report-actions{display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; align-items:center;}
   .report-actions button{font-size:13px; padding:11px 20px; border:1px solid var(--navy-900); border-radius:var(--radius); background:none; color:var(--navy-900);}
   .report-actions button:hover{background:var(--navy-900); color:var(--paper);}
+  .report-actions button.is-ghost{border-color:var(--line); color:var(--ink-soft);}
+  .report-actions button:disabled{opacity:.5; cursor:default;}
+  .save-status{font-size:12.5px; color:var(--ink-soft); display:inline-flex; align-items:center; gap:6px;}
+  .save-status.is-loading{color:var(--mint-deep);}
+  .save-status.is-success{color:var(--mint-deep); font-weight:700;}
+  .save-status.is-error{color:#C0392B; font-weight:700;}
 
   .instruction-wrap{position:relative;}
   .instruction-box{
@@ -2592,14 +2625,28 @@ function generateOutputs(plan, answers){
 
     var actions = document.createElement('div');
     actions.className = 'report-actions';
+
+    var btnView = document.createElement('button');
+    btnView.className = 'is-ghost';
+    btnView.textContent = '成果物を見る';
+    btnView.onclick = (function(i){ return function(){ document.getElementById('report-canvas-' + i).scrollIntoView({behavior:'smooth', block:'center'}); }; })(idx);
+
     var btnImg = document.createElement('button');
     btnImg.textContent = '画像として保存';
-    btnImg.onclick = (function(i){ return function(){ saveReportAsImage(i); }; })(idx);
+    btnImg.onclick = (function(i, planKey){ return function(){ saveReportAsImage(i, planKey); }; })(idx, sp);
+
     var btnPdf = document.createElement('button');
     btnPdf.textContent = 'PDFとして保存';
-    btnPdf.onclick = (function(i){ return function(){ saveReportAsPDF(i); }; })(idx);
+    btnPdf.onclick = (function(i, planKey){ return function(){ saveReportAsPDF(i, planKey); }; })(idx, sp);
+
+    var status = document.createElement('span');
+    status.className = 'save-status';
+    status.id = 'save-status-' + idx;
+
+    actions.appendChild(btnView);
     actions.appendChild(btnImg);
     actions.appendChild(btnPdf);
+    actions.appendChild(status);
     reportCol.appendChild(actions);
 
     var note1 = document.createElement('p');
@@ -2614,6 +2661,20 @@ function generateOutputs(plan, answers){
     h3.style.fontSize = '17px'; h3.style.marginBottom = '14px';
     h3.textContent = 'AI指示書' + (subPlans.length > 1 ? '(' + meta.label + ')' : '');
     instrCol.appendChild(h3);
+
+    var instrActions = document.createElement('div');
+    instrActions.className = 'report-actions';
+    instrActions.style.marginTop = '0'; instrActions.style.marginBottom = '14px';
+    var btnViewInstr = document.createElement('button');
+    btnViewInstr.className = 'is-ghost';
+    btnViewInstr.textContent = 'AI指示書を見る';
+    btnViewInstr.onclick = (function(i){ return function(){ document.getElementById('instruction-box-' + i).scrollIntoView({behavior:'smooth', block:'center'}); }; })(idx);
+    var btnCopyInstr = document.createElement('button');
+    btnCopyInstr.textContent = 'AI指示書をコピー';
+    btnCopyInstr.onclick = (function(i){ return function(){ copyInstruction(i); }; })(idx);
+    instrActions.appendChild(btnViewInstr);
+    instrActions.appendChild(btnCopyInstr);
+    instrCol.appendChild(instrActions);
 
     var wrap = document.createElement('div');
     wrap.className = 'instruction-wrap';
@@ -2699,33 +2760,118 @@ function fallbackCopy(text, cb){
   document.body.removeChild(ta);
 }
 
-function saveReportAsImage(idx){
+// ============================================================
+// 画像・PDFダウンロード(ブラウザ側処理のみ。AI APIは使用しません)
+// ============================================================
+
+// プランごとの正式なファイル名
+var FILE_NAME_MAP = {
+  scout:           'Seize_SCOUT_可能性マップ',
+  design:          'Seize_DESIGN_新規事業設計シート',
+  growth:          'Seize_GROWTH_事業成長マップ',
+  setScoutDesign:  'Seize_Foundation_可能性発見・事業設計レポート',
+  setDesignGrowth: 'Seize_Advance_事業設計・成長戦略レポート',
+  setFull:         'Seize_ORBIT_可能性・事業・成長統合レポート',
+  spark:           'Seize_SPARK_ひらめきメモ'
+};
+
+function ensureLibsReady(){
+  if(window.__seizeLibsReady){ return window.__seizeLibsReady; }
+  return Promise.resolve(typeof html2canvas !== 'undefined' && typeof window.jspdf !== 'undefined');
+}
+
+function setSaveStatus(idx, text, type){
+  var el = document.getElementById('save-status-' + idx);
+  if(!el) return;
+  el.textContent = text;
+  el.className = 'save-status' + (type ? ' is-' + type : '');
+  if(type === 'success'){
+    setTimeout(function(){
+      if(el.textContent === text){ el.textContent = ''; el.className = 'save-status'; }
+    }, 3500);
+  }
+}
+
+function saveReportAsImage(idx, planKey){
   idx = idx || 0;
   var el = document.getElementById('report-canvas-' + idx);
-  if(typeof html2canvas === 'undefined'){ alert('画像出力ライブラリの読み込みに失敗しました。通信環境をご確認のうえ再度お試しください。'); return; }
-  html2canvas(el, {backgroundColor:'#FBFAF7', scale:2}).then(function(canvas){
-    var link = document.createElement('a');
-    link.download = 'seize-report-' + (idx+1) + '.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+  if(!el) return;
+  setSaveStatus(idx, '成果物を準備しています…', 'loading');
+
+  ensureLibsReady().then(function(ready){
+    if(!ready || typeof html2canvas === 'undefined'){
+      setSaveStatus(idx, 'ファイルの生成に失敗しました。もう一度お試しください。', 'error');
+      return;
+    }
+    return html2canvas(el, {backgroundColor:'#FBFAF7', scale:2, useCORS:true}).then(function(canvas){
+      var fileName = (FILE_NAME_MAP[planKey] || 'Seize_report') + '.png';
+      var link = document.createElement('a');
+      link.download = fileName;
+      link.href = canvas.toDataURL('image/png');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setSaveStatus(idx, 'ダウンロードしました', 'success');
+    });
+  }).catch(function(err){
+    console.error('Seize: 画像保存に失敗', err);
+    setSaveStatus(idx, 'ファイルの生成に失敗しました。もう一度お試しください。', 'error');
   });
 }
 
-function saveReportAsPDF(idx){
+function saveReportAsPDF(idx, planKey){
   idx = idx || 0;
   var el = document.getElementById('report-canvas-' + idx);
-  if(typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined'){ alert('PDF出力ライブラリの読み込みに失敗しました。通信環境をご確認のうえ再度お試しください。'); return; }
-  html2canvas(el, {backgroundColor:'#FBFAF7', scale:2}).then(function(canvas){
-    var imgData = canvas.toDataURL('image/png');
-    var jsPDF = window.jspdf.jsPDF;
-    var pdf = new jsPDF({ orientation:'portrait', unit:'pt', format:'a4' });
-    var pageW = pdf.internal.pageSize.getWidth();
-    var pageH = pdf.internal.pageSize.getHeight();
-    var imgW = pageW - 40;
-    var imgH = imgW * (canvas.height / canvas.width);
-    if(imgH > pageH - 40){ imgH = pageH - 40; imgW = imgH * (canvas.width / canvas.height); }
-    pdf.addImage(imgData, 'PNG', 20, 20, imgW, imgH);
-    pdf.save('seize-report-' + (idx+1) + '.pdf');
+  if(!el) return;
+  setSaveStatus(idx, '成果物を準備しています…', 'loading');
+
+  ensureLibsReady().then(function(ready){
+    if(!ready || typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined'){
+      setSaveStatus(idx, 'ファイルの生成に失敗しました。もう一度お試しください。', 'error');
+      return;
+    }
+    return html2canvas(el, {backgroundColor:'#FBFAF7', scale:2, useCORS:true}).then(function(canvas){
+      var jsPDF = window.jspdf.jsPDF;
+      var pdf = new jsPDF({ orientation:'portrait', unit:'pt', format:'a4' });
+      var pageW = pdf.internal.pageSize.getWidth();
+      var pageH = pdf.internal.pageSize.getHeight();
+      var margin = 24;
+      var usableW = pageW - margin * 2;
+      var usableH = pageH - margin * 2;
+
+      // canvasの px を pt に変換するスケール、および1ページに収まる高さ(px)
+      var scale = usableW / canvas.width;
+      var pageHeightPx = usableH / scale;
+      var totalPages = Math.max(1, Math.ceil(canvas.height / pageHeightPx));
+
+      for(var p = 0; p < totalPages; p++){
+        var sliceHeightPx = Math.min(pageHeightPx, canvas.height - p * pageHeightPx);
+        if(sliceHeightPx <= 0) break;
+
+        var pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sliceHeightPx;
+        var ctx = pageCanvas.getContext('2d');
+        ctx.fillStyle = '#FBFAF7';
+        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        ctx.drawImage(
+          canvas,
+          0, p * pageHeightPx, canvas.width, sliceHeightPx,
+          0, 0, canvas.width, sliceHeightPx
+        );
+
+        var imgData = pageCanvas.toDataURL('image/png');
+        if(p > 0){ pdf.addPage(); }
+        pdf.addImage(imgData, 'PNG', margin, margin, usableW, sliceHeightPx * scale);
+      }
+
+      var fileName = (FILE_NAME_MAP[planKey] || 'Seize_report') + '.pdf';
+      pdf.save(fileName);
+      setSaveStatus(idx, '保存しました', 'success');
+    });
+  }).catch(function(err){
+    console.error('Seize: PDF保存に失敗', err);
+    setSaveStatus(idx, 'ファイルの生成に失敗しました。もう一度お試しください。', 'error');
   });
 }
 

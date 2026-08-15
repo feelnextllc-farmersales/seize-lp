@@ -2959,6 +2959,17 @@ function ensureLibsReady(){
   return Promise.resolve(typeof html2canvas !== 'undefined' && typeof window.jspdf !== 'undefined');
 }
 
+// 処理が固まって無反応に見えるのを防ぐため、一定時間で必ずタイムアウトさせる
+function withTimeout(promise, ms, label){
+  return new Promise(function(resolve, reject){
+    var timer = setTimeout(function(){
+      reject(new Error((label || '処理') + 'に時間がかかりすぎました'));
+    }, ms);
+    promise.then(function(v){ clearTimeout(timer); resolve(v); },
+                 function(e){ clearTimeout(timer); reject(e); });
+  });
+}
+
 function setSaveStatus(idx, text, type){
   var el = document.getElementById('save-status-' + idx);
   if(!el) return;
@@ -2973,39 +2984,44 @@ function setSaveStatus(idx, text, type){
 
 // ============================================================
 // 保存の共通フォールバック処理
-// 優先順位: ① Web共有API(files) → ② Blob + <a download> → ③ 新規タブで開いて長押し保存
-// これはiPhone Safariで<a download>やpdf.save()が不安定なための対応です。
+// ------------------------------------------------------------
+// html2canvasやWeb共有API呼び出しは非同期処理を挟むため、その間に
+// 「ユーザー操作の有効期限」が切れてしまい、Android/iOSの一部環境で
+// navigator.share()やwindow.open()が静かにブロックされることがあります。
+// そのため、モバイルでは「ブラウザ標準のビューアで開き、長押し保存・
+// 共有ボタンから保存してもらう」方式を優先し、確実性を高めています。
 // ============================================================
-function isIOS(){
-  return /iP(hone|od|ad)/.test(navigator.userAgent) && !window.MSStream;
+function isMobileDevice(){
+  return /Android|iP(hone|od|ad)|Mobile/i.test(navigator.userAgent);
 }
 
 function saveBlob(blob, fileName, idx, kindLabel){
-  var file = null;
-  try{ file = new File([blob], fileName, {type: blob.type}); }catch(e){ file = null; }
+  var url = URL.createObjectURL(blob);
 
-  // ① Web共有API(ファイル共有に対応している場合。iOS Safari 16.4+ / Android Chromeで有効)
-  if(file && navigator.canShare && navigator.canShare({files:[file]})){
-    navigator.share({files:[file], title:fileName}).then(function(){
-      setSaveStatus(idx, '保存しました', 'success');
-    }).catch(function(err){
-      if(err && err.name === 'AbortError'){
-        // ユーザーが共有をキャンセルしただけなのでエラー扱いにしない
-        setSaveStatus(idx, '', null);
-        return;
-      }
-      fallbackDownload(blob, fileName, idx, kindLabel);
-    });
+  if(isMobileDevice()){
+    // モバイル: ブラウザの標準ビューアで開き、長押し保存/共有ボタンでの保存を案内する
+    var opened = null;
+    try{ opened = window.open(url, '_blank'); }catch(e){ opened = null; }
+
+    if(opened){
+      var guide = (kindLabel === '画像')
+        ? '別タブで画像が開きました。画像を長押しして「画像を保存」を選んでください'
+        : '別タブでPDFが開きました。画面上部の共有・ダウンロードボタンから保存してください';
+      setSaveStatus(idx, guide, 'success');
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 120000);
+      return;
+    }
+
+    // ポップアップブロック等で開けなかった場合は、通常のダウンロードを試みる
+    tryAnchorDownload(blob, url, fileName, idx, kindLabel);
     return;
   }
 
-  fallbackDownload(blob, fileName, idx, kindLabel);
+  // PC: 通常のダウンロード(Blob + <a download>)
+  tryAnchorDownload(blob, url, fileName, idx, kindLabel);
 }
 
-function fallbackDownload(blob, fileName, idx, kindLabel){
-  var url = URL.createObjectURL(blob);
-
-  // ② 通常のダウンロード(Blob URL)を試みる。PC・多くのAndroidブラウザで機能します。
+function tryAnchorDownload(blob, url, fileName, idx, kindLabel){
   try{
     var link = document.createElement('a');
     link.href = url;
@@ -3013,19 +3029,16 @@ function fallbackDownload(blob, fileName, idx, kindLabel){
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }catch(e){
-    console.error('Seize: ダウンロード試行に失敗', e);
-  }
-
-  // ③ iOS Safariなど<a download>が信頼できない環境では、新規タブでも開き、
-  //    長押し保存(画像)・共有ボタンからの保存(PDF)を案内する。
-  if(isIOS()){
-    window.open(url, '_blank');
-    setSaveStatus(idx, '保存されない場合は、開いた画面を長押しして「' + kindLabel + 'を保存」してください', 'success');
-  } else {
     setSaveStatus(idx, 'ダウンロードしました', 'success');
+  }catch(err){
+    console.error('Seize: ダウンロード試行に失敗', err);
+    try{
+      window.open(url, '_blank');
+      setSaveStatus(idx, '保存されない場合は、開いた画面から保存してください', 'success');
+    }catch(err2){
+      setSaveStatus(idx, 'ファイルの生成に失敗しました(' + (err2 && err2.message ? err2.message : '不明なエラー') + ')。もう一度お試しください。', 'error');
+    }
   }
-
   setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
 }
 
@@ -3035,16 +3048,16 @@ function saveReportAsImage(idx, planKey){
   if(!el) return;
   setSaveStatus(idx, '成果物を準備しています…', 'loading');
 
-  ensureLibsReady().then(function(ready){
+  withTimeout(ensureLibsReady(), 15000, 'ライブラリの読み込み').then(function(ready){
     if(!ready || typeof html2canvas === 'undefined'){
-      setSaveStatus(idx, 'ファイルの生成に失敗しました。もう一度お試しください。', 'error');
+      setSaveStatus(idx, 'ファイルの生成に失敗しました(ライブラリ読み込み)。通信環境をご確認のうえ、もう一度お試しください。', 'error');
       return;
     }
-    return html2canvas(el, {backgroundColor:'#FBFAF7', scale:2, useCORS:true}).then(function(canvas){
+    return withTimeout(html2canvas(el, {backgroundColor:'#FBFAF7', scale:2, useCORS:true}), 20000, '画像の生成').then(function(canvas){
       var fileName = (FILE_NAME_MAP[planKey] || 'Seize_report') + '.png';
       canvas.toBlob(function(blob){
         if(!blob){
-          setSaveStatus(idx, 'ファイルの生成に失敗しました。もう一度お試しください。', 'error');
+          setSaveStatus(idx, 'ファイルの生成に失敗しました(画像データの作成)。もう一度お試しください。', 'error');
           return;
         }
         saveBlob(blob, fileName, idx, '画像');
@@ -3052,7 +3065,7 @@ function saveReportAsImage(idx, planKey){
     });
   }).catch(function(err){
     console.error('Seize: 画像保存に失敗', err);
-    setSaveStatus(idx, 'ファイルの生成に失敗しました。もう一度お試しください。', 'error');
+    setSaveStatus(idx, 'ファイルの生成に失敗しました(' + (err && err.message ? err.message : '不明なエラー') + ')。もう一度お試しください。', 'error');
   });
 }
 
@@ -3062,12 +3075,12 @@ function saveReportAsPDF(idx, planKey){
   if(!el) return;
   setSaveStatus(idx, '成果物を準備しています…', 'loading');
 
-  ensureLibsReady().then(function(ready){
+  withTimeout(ensureLibsReady(), 15000, 'ライブラリの読み込み').then(function(ready){
     if(!ready || typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined'){
-      setSaveStatus(idx, 'ファイルの生成に失敗しました。もう一度お試しください。', 'error');
+      setSaveStatus(idx, 'ファイルの生成に失敗しました(ライブラリ読み込み)。通信環境をご確認のうえ、もう一度お試しください。', 'error');
       return;
     }
-    return html2canvas(el, {backgroundColor:'#FBFAF7', scale:2, useCORS:true}).then(function(canvas){
+    return withTimeout(html2canvas(el, {backgroundColor:'#FBFAF7', scale:2, useCORS:true}), 20000, 'PDFの生成').then(function(canvas){
       var jsPDF = window.jspdf.jsPDF;
       var pdf = new jsPDF({ orientation:'portrait', unit:'pt', format:'a4' });
       var pageW = pdf.internal.pageSize.getWidth();
@@ -3108,7 +3121,7 @@ function saveReportAsPDF(idx, planKey){
     });
   }).catch(function(err){
     console.error('Seize: PDF保存に失敗', err);
-    setSaveStatus(idx, 'ファイルの生成に失敗しました。もう一度お試しください。', 'error');
+    setSaveStatus(idx, 'ファイルの生成に失敗しました(' + (err && err.message ? err.message : '不明なエラー') + ')。もう一度お試しください。', 'error');
   });
 }
 

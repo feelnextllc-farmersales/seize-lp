@@ -2999,20 +2999,32 @@ function saveBlob(blob, fileName, idx, kindLabel){
   var url = URL.createObjectURL(blob);
 
   if(isMobileDevice()){
-    // モバイル: ブラウザの標準ビューアで開き、長押し保存/共有ボタンでの保存を案内する
-    var opened = null;
-    try{ opened = window.open(url, '_blank'); }catch(e){ opened = null; }
-
-    if(opened){
-      var guide = (kindLabel === '画像')
-        ? '別タブで画像が開きました。画像を長押しして「画像を保存」を選んでください'
-        : '別タブでPDFが開きました。画面上部の共有・ダウンロードボタンから保存してください';
-      setSaveStatus(idx, guide, 'success');
-      setTimeout(function(){ URL.revokeObjectURL(url); }, 120000);
-      return;
+    // モバイル: window.open(blob URL)は「開けたように見えて実際は開かない」端末があるため使わない。
+    // 1) Web Share APIが使えれば共有シート経由で保存してもらう(最も確実)
+    // 2) 使えない/失敗した場合は <a download> による通常ダウンロードにフォールバックする
+    try{
+      var mime = (kindLabel === '画像') ? 'image/png' : 'application/pdf';
+      var shareFile = new File([blob], fileName, {type: mime});
+      if(navigator.canShare && navigator.share && navigator.canShare({files:[shareFile]})){
+        navigator.share({files:[shareFile], title: fileName}).then(function(){
+          setSaveStatus(idx, '共有シートから保存してください', 'success');
+        }).catch(function(err){
+          if(err && err.name === 'AbortError'){
+            // ユーザーが共有をキャンセルしただけなので、勝手にダウンロードは開始しない
+            setSaveStatus(idx, '', '');
+            return;
+          }
+          console.error('Seize: Web Share APIでの共有に失敗、ダウンロードにフォールバック', err);
+          tryAnchorDownload(blob, url, fileName, idx, kindLabel);
+        }).then(function(){
+          setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+        });
+        return;
+      }
+    }catch(e){
+      console.error('Seize: Web Share API利用中にエラー、ダウンロードにフォールバック', e);
     }
 
-    // ポップアップブロック等で開けなかった場合は、通常のダウンロードを試みる
     tryAnchorDownload(blob, url, fileName, idx, kindLabel);
     return;
   }

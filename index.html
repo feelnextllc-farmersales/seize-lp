@@ -7,35 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<script>
-  // 画像/PDF出力ライブラリを、CDN障害時にも読み込めるようフォールバック付きで読み込む
-  (function(){
-    function loadScript(src){
-      return new Promise(function(resolve, reject){
-        var s = document.createElement('script');
-        s.src = src;
-        s.onload = function(){ resolve(); };
-        s.onerror = function(){ reject(new Error('load failed: ' + src)); };
-        document.head.appendChild(s);
-      });
-    }
-    function loadWithFallback(urls, i){
-      i = i || 0;
-      if(i >= urls.length) return Promise.reject(new Error('all sources failed'));
-      return loadScript(urls[i]).catch(function(){ return loadWithFallback(urls, i + 1); });
-    }
-    window.__seizeLibsReady = Promise.all([
-      loadWithFallback([
-        'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
-        'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'
-      ]),
-      loadWithFallback([
-        'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-        'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'
-      ])
-    ]).then(function(){ return true; }).catch(function(e){ console.error('Seize: 画像/PDF出力ライブラリの読み込みに失敗', e); return false; });
-  })();
-</script>
 <style>
   :root{
     --navy-900:#0E1630;
@@ -293,6 +264,60 @@
   .doc-chart .bar span{position:absolute; bottom:-18px; left:0; right:0; text-align:center; font-family:var(--mono); font-size:10px; color:var(--ink-soft);}
   .doc-foot{margin-top:34px; font-size:11px; color:var(--ink-soft); border-top:1px dashed var(--line); padding-top:14px;}
 
+  /* ---- VISUAL RESULT(総合スコア・レーダーチャート・SWOT・3C・サマリー・アクション) ---- */
+  .vr-wrap{margin-bottom:8px;}
+  .vr-tag{font-family:var(--mono); font-size:10.5px; letter-spacing:0.12em; color:var(--mint-deep); margin-bottom:10px;}
+  .vr-sample-badge{display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:0.08em; color:var(--gold); border:1px solid var(--gold); border-radius:20px; padding:3px 10px; margin-left:10px; vertical-align:middle;}
+  .vr-score{display:flex; align-items:baseline; gap:10px; margin-bottom:10px;}
+  .vr-score-label{font-size:12.5px; color:var(--ink-soft);}
+  .vr-score-num{font-family:var(--serif); font-size:38px; color:var(--navy-900); font-weight:700; line-height:1;}
+  .vr-score-num span{font-size:14px; color:var(--ink-soft); font-weight:400; margin-left:4px;}
+  .vr-radar{display:flex; justify-content:center; margin:8px 0 6px;}
+  .vr-radar-svg{width:100%; max-width:280px; height:auto;}
+  .vr-note{font-size:10.5px; color:var(--ink-soft); text-align:center; margin-bottom:18px;}
+  .vr-block-h{font-family:var(--mono); font-size:11px; letter-spacing:0.1em; color:var(--navy-900); border-bottom:1px solid var(--line); padding-bottom:6px; margin:26px 0 14px; text-transform:uppercase;}
+  .vr-swot-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .vr-swot-item{border:1px solid var(--line); border-radius:4px; padding:12px 14px; background:var(--paper);}
+  .vr-swot-item.is-s{border-top:3px solid var(--mint-deep);}
+  .vr-swot-item.is-w{border-top:3px solid #C0392B;}
+  .vr-swot-item.is-o{border-top:3px solid var(--gold);}
+  .vr-swot-item.is-t{border-top:3px solid var(--navy-600);}
+  .vr-swot-h{font-family:var(--mono); font-size:10px; letter-spacing:0.08em; color:var(--navy-900);}
+  .vr-swot-h span{display:block; font-family:var(--sans); font-size:11px; color:var(--ink-soft); letter-spacing:0; margin-top:2px;}
+  .vr-swot-item ul{list-style:none; margin:8px 0 0; padding:0; font-size:12px; color:var(--ink-soft); display:flex; flex-direction:column; gap:6px;}
+  .vr-swot-item li:before{content:"・"; color:var(--gold); margin-right:2px;}
+  .vr-swot-empty{color:var(--line) !important;}
+  @media(max-width:480px){.vr-swot-grid{grid-template-columns:1fr;}}
+  .vr-c3-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+  .vr-c3-card{border:1px solid var(--line); border-radius:4px; padding:14px; text-align:center; background:var(--paper);}
+  .vr-c3-score{font-family:var(--serif); font-size:22px; color:var(--mint-deep); font-weight:700;}
+  .vr-c3-label{font-family:var(--mono); font-size:10px; letter-spacing:0.08em; color:var(--navy-900); margin:4px 0 8px;}
+  .vr-c3-label span{display:block; font-family:var(--sans); font-size:11px; color:var(--ink-soft); letter-spacing:0; margin-top:2px;}
+  .vr-c3-card p{font-size:11.5px; color:var(--ink-soft); margin:0; text-align:left;}
+  @media(max-width:640px){.vr-c3-grid{grid-template-columns:1fr;}}
+  .vr-summary{background:var(--paper-dim); border-left:3px solid var(--mint-deep); padding:14px 16px; border-radius:0 4px 4px 0;}
+  .vr-summary p{font-size:13px; color:var(--ink); line-height:1.8; margin:0;}
+  .vr-actions{display:flex; flex-direction:column; gap:10px;}
+  .vr-action-item{display:flex; gap:14px; align-items:flex-start; border:1px solid var(--line); border-radius:4px; padding:12px 14px;}
+  .vr-action-num{font-family:var(--mono); font-size:16px; color:var(--mint-deep); font-weight:700; flex-shrink:0;}
+  .vr-action-text{font-size:12.5px; color:var(--ink); line-height:1.7;}
+  .vr-keypoints{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .vr-kp-col{border:1px solid var(--line); border-radius:4px; padding:12px 14px; border-top:3px solid var(--mint-deep);}
+  .vr-kp-col.vr-kp-warn{border-top:3px solid #C0392B;}
+  .vr-kp-h{font-family:var(--mono); font-size:10.5px; letter-spacing:0.06em; color:var(--navy-900); margin-bottom:8px;}
+  .vr-kp-col ul{list-style:none; margin:0; padding:0; font-size:12px; color:var(--ink-soft); display:flex; flex-direction:column; gap:6px;}
+  .vr-kp-col li:before{content:"・"; color:var(--gold); margin-right:2px;}
+  @media(max-width:480px){.vr-keypoints{grid-template-columns:1fr;}}
+
+  /* ---- AI実行用プロンプト(折りたたみ) ---- */
+  .prompt-toggle{margin-top:28px; border-top:1px dashed var(--line); padding-top:22px;}
+  .prompt-toggle summary{cursor:pointer; list-style:none; display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--navy-900); border:1px solid var(--navy-900); border-radius:var(--radius); padding:11px 20px; background:none;}
+  .prompt-toggle summary::-webkit-details-marker{display:none;}
+  .prompt-toggle summary:before{content:"▸"; color:var(--mint-deep);}
+  .prompt-toggle[open] summary:before{content:"▾";}
+  .prompt-toggle summary:hover{background:var(--navy-900); color:var(--paper);}
+  .prompt-toggle-body{margin-top:20px;}
+
   /* ---------- Claude section ---------- */
   .claude{background:var(--paper-dim);}
   .claude-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:24px;}
@@ -423,10 +448,6 @@
   .report-actions button:hover{background:var(--navy-900); color:var(--paper);}
   .report-actions button.is-ghost{border-color:var(--line); color:var(--ink-soft);}
   .report-actions button:disabled{opacity:.5; cursor:default;}
-  .save-status{font-size:12.5px; color:var(--ink-soft); display:inline-flex; align-items:center; gap:6px;}
-  .save-status.is-loading{color:var(--mint-deep);}
-  .save-status.is-success{color:var(--mint-deep); font-weight:700;}
-  .save-status.is-error{color:#C0392B; font-weight:700;}
 
   .instruction-wrap{position:relative;}
   .instruction-box{
@@ -933,14 +954,15 @@
       <div class="sample-copy">
         <div class="section-head" style="margin-bottom:24px;">
           <div class="eyebrow" style="color:var(--mint-deep)">Sample</div>
-          <h2>成果物のイメージ</h2>
+          <h2>あなたの事業を、ここまで可視化します。</h2>
         </div>
-        <p>各プランの成果物は、いただいた回答をもとに構成される分析レポートです。以下の画像はDESIGNプランで実際に生成されるレポートの構成サンプルです(架空のデータです)。</p>
-        <p>実際のレポートは、業種・保有資産・目的など、ヒアリング内容に応じて内容が変化します。ご購入後、画像またはPDFとして保存いただけます。</p>
+        <p>Seizeが届けるのは、長いAIプロンプトだけではありません。まず、あなたの可能性を可視化し、自分の強み・課題を一目で分かる形にします。</p>
+        <p>分析結果をもとに次の行動まで整理し、さらにAIで実行できるプロンプトまでお渡しします。以下はDESIGNプランのサンプル(架空のデータ)です。実際の画面と同じデザインで表示されます。</p>
       </div>
 
       <div class="doc-window">
-        <img src="sample-report-design.png" alt="DESIGNプランで生成される事業設計レポートのサンプル画像" style="width:100%; display:block;">
+        <div class="doc-bar"><span class="doc-dot"></span><span class="doc-dot"></span><span class="doc-dot"></span><span class="doc-name">seize_report_sample.html</span></div>
+        <div class="doc-body" id="lp-sample-body"></div>
       </div>
     </div>
 
@@ -2234,7 +2256,17 @@ function buildReportHTML(plan, a){
 
 function buildSparkReportHTML(a){
   var idea = fallback(av(a,'spark_idea'), 'ひらめきメモ');
+  var scores = computeSparkScores(a);
+  var swot = buildSparkSWOT(a);
+  var c3 = buildSpark3C(a, scores);
   var html = reportHeader('SAMPLE / SPARK', 'ひらめきメモ', idea);
+  html += renderVisualResult(scores, {
+    scoreLabel: 'アイデア評価スコア',
+    swot: swot,
+    c3: c3,
+    summary: buildSummaryText(scores),
+    actions: buildActionsList(scores, a)
+  });
   html += reportSection('思いついたこと', [
     fallback(av(a,'spark_idea')),
     '分野:' + fallback(av(a,'spark_field'))
@@ -2265,9 +2297,362 @@ function escapeHTML(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ============================================================
+// VISUAL RESULT — 総合スコア・レーダーチャート・SWOT・3C・
+// SUMMARY・ACTIONを、回答データからルールベースで生成する。
+// AI APIは一切使用しない(すべてJavaScriptによる計算・分岐)。
+// ============================================================
+
+// ---- スコアリング用の共通ヘルパー ----
+function clamp10(v){ return Math.max(1, Math.min(10, Math.round(v))); }
+function mapScore(map, value, def){ return (map && map[value] !== undefined) ? map[value] : (def===undefined?5:def); }
+function textBonus(text, maxBonus, perChars){
+  perChars = perChars || 40;
+  if(!text) return 0;
+  return Math.min(maxBonus, Math.floor(String(text).trim().length / perChars));
+}
+function countBonus(arr, perItem, cap){
+  if(!arr || !arr.length) return 0;
+  return Math.min(cap, arr.length * perItem);
+}
+function avgScores(s){
+  return Math.round(((s.market+s.profitability+s.feasibility+s.uniqueness+s.sustainability)/5)*10)/10;
+}
+function averageScoreSets(list){
+  var axes = ['market','profitability','feasibility','uniqueness','sustainability'];
+  var out = {};
+  axes.forEach(function(k){
+    var sum = 0;
+    list.forEach(function(s){ sum += s[k]; });
+    out[k] = clamp10(sum / list.length);
+  });
+  out.overall = avgScores(out);
+  return out;
+}
+function trimList(arr, max){ return arr.filter(Boolean).slice(0, max); }
+function axisLabel(key){
+  return {market:'市場性', profitability:'収益性', feasibility:'実現性', uniqueness:'独自性', sustainability:'継続性'}[key];
+}
+
+// ---- プランごとのスコア算出(なぜその点数かが説明できるルールベース) ----
+function computeScoutScores(a){
+  var tradeAreaMap = {'近隣地域中心':4,'市区町村内':5,'都道府県内':7,'全国':9,'海外も含む':10};
+  var priceMap = {'低価格帯':4,'中価格帯':6,'高価格帯':8};
+  var freqMap = {'一度きりが多い':4,'月1回程度':6,'リピートが多い':9,'わからない':5};
+  var yearsMap = {'3年未満':4,'3〜10年':6,'10〜20年':8,'20年以上':9};
+  var investMap = {'〜10万円':4,'10〜50万円':6,'50〜100万円':7,'100万円以上':9,'わからない':5};
+  var timeMap = {'週数時間程度':4,'週10時間程度':6,'本業として本格的に取り組める':9,'わからない':5};
+
+  var market = clamp10(mapScore(tradeAreaMap, av(a,'trade_area'), 5) * 0.6 + countBonus(avArr(a,'customer_type'), 1, 3) + countBonus(avArr(a,'acquisition'), 0.7, 2));
+  var profitability = clamp10(mapScore(priceMap, av(a,'price_range'), 5) + (mapScore(freqMap, av(a,'purchase_freq'), 5) - 5) * 0.4);
+  var feasibility = clamp10(mapScore(investMap, av(a,'investable'), 5) * 0.5 + mapScore(timeMap, av(a,'available_time'), 5) * 0.5);
+  var uniqueness = clamp10(4 + countBonus(avArr(a,'strengths'), 1, 4) + textBonus(av(a,'hidden_strength'), 2));
+  var sustainability = clamp10(mapScore(yearsMap, av(a,'biz_years'), 5) * 0.6 + textBonus(av(a,'network'), 2) + textBonus(av(a,'knowhow'), 2) * 0.5);
+
+  var s = {market:market, profitability:profitability, feasibility:feasibility, uniqueness:uniqueness, sustainability:sustainability};
+  s.overall = avgScores(s);
+  return s;
+}
+
+function computeDesignScores(a){
+  var difficultyMap = {'低い':8,'中程度':6,'高い':3,'わからない':5};
+  var fundMap = {'〜50万円':8,'50〜200万円':6,'200〜500万円':4,'500万円以上':3,'わからない':5};
+  var confMap = {'高い':8,'ある程度ある':6,'低い':3,'わからない':5};
+  var periodMap = {'半年以内':8,'1年以内':7,'2〜3年':6,'未定':5};
+
+  var market = clamp10(5 + textBonus(av(a,'target_customer'), 2) + textBonus(av(a,'customer_pain'), 2) + (av(a,'channel_type')==='両方' ? 1 : 0));
+  var profitability = clamp10(5 + textBonus(av(a,'price_plan'), 2) + (av(a,'revenue_model')==='サブスクリプション' ? 2 : (av(a,'revenue_model') ? 1 : 0)));
+  var feasibility = clamp10(mapScore(difficultyMap, av(a,'difficulty'), 5) * 0.6 + mapScore(fundMap, av(a,'need_fund'), 5) * 0.4);
+  var uniqueness = clamp10(4 + textBonus(av(a,'unique_selling_point'), 3) + mapScore(confMap, av(a,'differentiation_confidence'), 5) * 0.3);
+  var sustainability = clamp10(4 + textBonus(av(a,'exit_criteria'), 2) + textBonus(av(a,'pivot_plan'), 2) + mapScore(periodMap, av(a,'target_period'), 5) * 0.3);
+
+  var s = {market:market, profitability:profitability, feasibility:feasibility, uniqueness:uniqueness, sustainability:sustainability};
+  s.overall = avgScores(s);
+  return s;
+}
+
+function computeGrowthScores(a){
+  var salesMap = {'〜500万円':4,'500万〜2000万円':6,'2000万〜1億円':8,'1億円以上':9,'わからない':5};
+  var staffMap = {'十分足りている':8,'やや不足している':5,'大幅に不足している':3};
+  var equipMap = {'十分足りている':8,'一部拡張が必要':5,'大幅な投資が必要':3};
+  var brandMap = {'地域でよく知られている':8,'一定の認知がある':6,'あまり知られていない':3,'わからない':5};
+  var repeatMap = {'高い':9,'普通':6,'低い':3,'わからない':5};
+
+  var market = clamp10(mapScore(salesMap, av(a,'current_sales_scale'), 5) * 0.4 + countBonus(avArr(a,'growth_direction'), 1.2, 4));
+  var profitability = clamp10(mapScore(salesMap, av(a,'current_sales_scale'), 5) * 0.5 + textBonus(av(a,'upsell_potential'), 3));
+  var feasibility = clamp10(mapScore(staffMap, av(a,'staff_status'), 5) * 0.5 + mapScore(equipMap, av(a,'equipment_status'), 5) * 0.5);
+  var uniqueness = clamp10(mapScore(brandMap, av(a,'brand_recognition'), 5) * 0.6 + (av(a,'brand_asset')==='ある' ? 2 : 0));
+  var sustainability = clamp10(mapScore(repeatMap, av(a,'repeat_feeling'), 5) * 0.6 + countBonus(avArr(a,'digital_status'), 1, 3));
+
+  var s = {market:market, profitability:profitability, feasibility:feasibility, uniqueness:uniqueness, sustainability:sustainability};
+  s.overall = avgScores(s);
+  return s;
+}
+
+function computeSparkScores(a){
+  var market = clamp10(4 + textBonus(av(a,'spark_target_problem'), 4) + textBonus(av(a,'spark_field'), 1));
+  var profitability = clamp10(4 + textBonus(av(a,'spark_image'), 3) + textBonus(av(a,'spark_target_problem'), 2));
+  var feasibility = clamp10(5 + textBonus(av(a,'spark_trigger'), 2) - textBonus(av(a,'spark_concern'), 2));
+  var uniqueness = clamp10(4 + textBonus(av(a,'spark_idea'), 3) + textBonus(av(a,'spark_image'), 2));
+  var sustainability = clamp10(5 + textBonus(av(a,'spark_trigger'), 2));
+
+  var s = {market:market, profitability:profitability, feasibility:feasibility, uniqueness:uniqueness, sustainability:sustainability};
+  s.overall = avgScores(s);
+  return s;
+}
+
+// ---- SWOT(ルールベースで回答内容を4象限に分類) ----
+function buildScoutSWOT(a){
+  return {
+    strengths: trimList(avArr(a,'strengths').concat([av(a,'hidden_strength')]), 4),
+    weaknesses: trimList([av(a,'current_issue'), av(a,'acquisition_trouble')], 3),
+    opportunities: trimList([av(a,'want_to_try'), av(a,'unmet_value'), av(a,'underused')], 3),
+    threats: trimList([av(a,'constraints')], 2)
+  };
+}
+function buildDesignSWOT(a){
+  return {
+    strengths: trimList([av(a,'unique_selling_point'), av(a,'provided_value')], 4),
+    weaknesses: trimList([av(a,'need_equipment'), av(a,'need_staff')], 3),
+    opportunities: trimList([av(a,'target_customer'), av(a,'customer_pain'), av(a,'related_to_scout')], 3),
+    threats: trimList([av(a,'competitor_exist')==='いる' ? av(a,'competitor_detail') : '', av(a,'main_risk')], 2)
+  };
+}
+function buildGrowthSWOT(a){
+  return {
+    strengths: trimList(avArr(a,'growth_strengths'), 4),
+    weaknesses: trimList([av(a,'growth_limit'), av(a,'growth_current_issue')], 3),
+    opportunities: trimList([av(a,'growth_potential'), av(a,'new_use_case')].concat(avArr(a,'growth_direction')), 3),
+    threats: trimList([av(a,'partner_concern'), av(a,'unwanted_growth')], 2)
+  };
+}
+function buildSparkSWOT(a){
+  return {
+    strengths: trimList([av(a,'spark_idea'), av(a,'spark_image')], 3),
+    weaknesses: trimList([av(a,'spark_concern')], 2),
+    opportunities: trimList([av(a,'spark_target_problem')], 2),
+    threats: trimList([], 2)
+  };
+}
+function mergeSWOT(parts, max){
+  max = max || 4;
+  function merge(key){
+    var out = [];
+    parts.forEach(function(p){ out = out.concat(p[key] || []); });
+    return trimList(out, max);
+  }
+  return { strengths: merge('strengths'), weaknesses: merge('weaknesses'), opportunities: merge('opportunities'), threats: merge('threats') };
+}
+
+// ---- 3C(Customer / Company / Competitor) ----
+function buildDesign3C(a, scores){
+  return {
+    customer: { score: scores.market, text: fallback(av(a,'target_customer')) + '。課題:' + fallback(av(a,'customer_pain')) },
+    company: { score: scores.uniqueness, text: fallback(av(a,'provided_value')) + '。独自性:' + fallback(av(a,'unique_selling_point')) },
+    competitor: { score: scores.feasibility, text: av(a,'competitor_exist')==='いる' ? fallback(av(a,'competitor_detail')) : '現時点で明確な競合は確認されていません。' }
+  };
+}
+function buildGrowth3C(a, scores){
+  return {
+    customer: { score: scores.market, text: fallback(av(a,'customer_composition')) },
+    company: { score: scores.uniqueness, text: fallback(avArr(a,'growth_strengths').join('、')) },
+    competitor: { score: scores.feasibility, text: '認知度:' + fallback(av(a,'brand_recognition')) }
+  };
+}
+function buildSpark3C(a, scores){
+  return {
+    customer: { score: scores.market, text: fallback(av(a,'spark_target_problem')) },
+    company: { score: scores.uniqueness, text: fallback(av(a,'spark_image')) },
+    competitor: { score: scores.feasibility, text: fallback(av(a,'spark_concern'), '特に大きな懸念は挙げられていません。') }
+  };
+}
+
+// ---- SUMMARY(スコアの高低からルールベースで短い要約を生成) ----
+function buildSummaryText(scores){
+  var axes = ['market','profitability','feasibility','uniqueness','sustainability'];
+  var high = axes.filter(function(k){ return scores[k] >= 7; }).map(axisLabel);
+  var low = axes.filter(function(k){ return scores[k] <= 5; }).map(axisLabel);
+  var mid = axes.filter(function(k){ return scores[k] > 5 && scores[k] < 7; }).map(axisLabel);
+
+  var parts = [];
+  if(high.length){ parts.push(high.join('・') + 'は高い評価です。'); }
+  if(low.length){
+    parts.push(low.join('・') + 'には改善の余地があります。');
+  } else if(mid.length){
+    parts.push(mid.join('・') + 'は今後さらに伸ばせる可能性があります。');
+  }
+  if(scores.overall >= 7.5){
+    parts.push('全体として高いポテンシャルが見えており、早めの行動が効果的です。');
+  } else if(scores.overall >= 5.5){
+    parts.push('土台は整いつつあり、優先度の高い課題から着手することが推奨されます。');
+  } else {
+    parts.push('まずは小さな検証から始め、情報を補いながら精度を高めていくことが推奨されます。');
+  }
+  return parts.join(' ');
+}
+
+// ---- ACTION(スコアが低い軸を優先し、回答内の具体的な意向があればそれを採用) ----
+function buildActionsList(scores, a){
+  var axes = ['market','profitability','feasibility','uniqueness','sustainability'];
+  var sorted = axes.slice().sort(function(x,y){ return scores[x] - scores[y]; });
+  var lowest = sorted.slice(0, 2);
+
+  var TEMPLATES = {
+    market: '想定する顧客のニーズを具体的に検証する',
+    profitability: '価格設定・収益モデルを見直し、利益率を確認する',
+    feasibility: '必要な資金・体制を整理し、実現へのハードルを下げる',
+    uniqueness: '他社にはない独自の強み・差別化ポイントを明確にする',
+    sustainability: '継続的に取り組める体制・仕組みを整える'
+  };
+
+  var actions = lowest.map(function(k){ return TEMPLATES[k]; });
+  var direct = av(a,'first_action') || av(a,'priority_theme') || av(a,'want_to_try');
+  actions.push(direct || '小規模なテストを実施し、結果をもとに次のステップを判断する');
+  return actions.slice(0, 3);
+}
+
+// ---- レーダーチャート(SVG。外部ライブラリは使用しない) ----
+function polarPoint(cx, cy, r, angleDeg){
+  var rad = (angleDeg - 90) * Math.PI / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+function renderRadarChartSVG(scores){
+  var axes = [
+    {key:'market', label:'市場性'},
+    {key:'profitability', label:'収益性'},
+    {key:'feasibility', label:'実現性'},
+    {key:'uniqueness', label:'独自性'},
+    {key:'sustainability', label:'継続性'}
+  ];
+  var cx = 150, cy = 150, R = 100;
+  var n = axes.length;
+  var angleStep = 360 / n;
+  var COL_LINE = '#D9D5C9', COL_MINT = '#2FBFA6', COL_MINT_DEEP = '#1E8E7A', COL_INK_SOFT = '#565D6D';
+
+  var gridRings = [0.25, 0.5, 0.75, 1].map(function(f){
+    var pts = axes.map(function(ax, i){
+      var p = polarPoint(cx, cy, R * f, angleStep * i);
+      return p.x.toFixed(1) + ',' + p.y.toFixed(1);
+    }).join(' ');
+    return '<polygon points="' + pts + '" fill="none" stroke="' + COL_LINE + '" stroke-width="1"/>';
+  }).join('');
+
+  var axisLines = axes.map(function(ax, i){
+    var p = polarPoint(cx, cy, R, angleStep * i);
+    return '<line x1="' + cx + '" y1="' + cy + '" x2="' + p.x.toFixed(1) + '" y2="' + p.y.toFixed(1) + '" stroke="' + COL_LINE + '" stroke-width="1"/>';
+  }).join('');
+
+  var dataPts = axes.map(function(ax, i){
+    var val = Math.max(0, Math.min(10, scores[ax.key] || 0));
+    var p = polarPoint(cx, cy, R * (val / 10), angleStep * i);
+    return p.x.toFixed(1) + ',' + p.y.toFixed(1);
+  }).join(' ');
+
+  var dataDots = axes.map(function(ax, i){
+    var val = Math.max(0, Math.min(10, scores[ax.key] || 0));
+    var p = polarPoint(cx, cy, R * (val / 10), angleStep * i);
+    return '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="3.5" fill="' + COL_MINT_DEEP + '"/>';
+  }).join('');
+
+  var labels = axes.map(function(ax, i){
+    var val = Math.max(0, Math.min(10, scores[ax.key] || 0));
+    var p = polarPoint(cx, cy, R + 26, angleStep * i);
+    var anchor = 'middle';
+    if(p.x < cx - 8){ anchor = 'end'; } else if(p.x > cx + 8){ anchor = 'start'; }
+    return '<text x="' + p.x.toFixed(1) + '" y="' + p.y.toFixed(1) + '" text-anchor="' + anchor + '" font-size="11" fill="' + COL_INK_SOFT + '">' + escapeHTML(ax.label) + ' ' + val + '</text>';
+  }).join('');
+
+  return '<svg viewBox="0 0 300 300" class="vr-radar-svg" role="img" aria-label="5軸評価レーダーチャート">' +
+    gridRings + axisLines +
+    '<polygon points="' + dataPts + '" fill="' + COL_MINT + '" fill-opacity="0.28" stroke="' + COL_MINT_DEEP + '" stroke-width="2"/>' +
+    dataDots + labels +
+    '</svg>';
+}
+
+// ---- 各コンポーネントのHTML生成 ----
+function renderScoreHeader(overall, label){
+  return '<div class="vr-score"><div class="vr-score-label">' + escapeHTML(label || '総合スコア') + '</div>' +
+    '<div class="vr-score-num">' + overall.toFixed(1) + '<span>/ 10</span></div></div>';
+}
+function renderSWOT(swot){
+  function itemsHTML(arr){
+    if(!arr || !arr.length) return '<li class="vr-swot-empty">(該当項目なし)</li>';
+    return arr.map(function(t){ return '<li>' + escapeHTML(t) + '</li>'; }).join('');
+  }
+  return '<div class="vr-swot-grid">' +
+    '<div class="vr-swot-item is-s"><div class="vr-swot-h">STRENGTH<span>強み</span></div><ul>' + itemsHTML(swot.strengths) + '</ul></div>' +
+    '<div class="vr-swot-item is-w"><div class="vr-swot-h">WEAKNESS<span>弱み</span></div><ul>' + itemsHTML(swot.weaknesses) + '</ul></div>' +
+    '<div class="vr-swot-item is-o"><div class="vr-swot-h">OPPORTUNITY<span>機会</span></div><ul>' + itemsHTML(swot.opportunities) + '</ul></div>' +
+    '<div class="vr-swot-item is-t"><div class="vr-swot-h">THREAT<span>脅威</span></div><ul>' + itemsHTML(swot.threats) + '</ul></div>' +
+    '</div>';
+}
+function render3C(c3){
+  function card(key, label, jp, data){
+    return '<div class="vr-c3-card is-' + key + '"><div class="vr-c3-score">' + data.score + '</div>' +
+      '<div class="vr-c3-label">' + label + '<span>' + jp + '</span></div>' +
+      '<p>' + escapeHTML(data.text) + '</p></div>';
+  }
+  return '<div class="vr-c3-grid">' +
+    card('customer', 'CUSTOMER', '顧客ニーズ・市場', c3.customer) +
+    card('company', 'COMPANY', '自社資源・強み', c3.company) +
+    card('competitor', 'COMPETITOR', '競合・差別化', c3.competitor) +
+    '</div>';
+}
+function renderSummary(text){
+  return '<div class="vr-summary"><p>' + escapeHTML(text) + '</p></div>';
+}
+function renderActions(actions){
+  return '<div class="vr-actions">' + actions.map(function(act, i){
+    var n = ('0' + (i + 1)).slice(-2);
+    return '<div class="vr-action-item"><div class="vr-action-num">' + n + '</div><div class="vr-action-text">' + escapeHTML(act) + '</div></div>';
+  }).join('') + '</div>';
+}
+function renderKeyPoints(strengths, challenges){
+  function list(arr){
+    if(!arr.length) return '<li class="vr-swot-empty">(該当項目なし)</li>';
+    return arr.map(function(t){ return '<li>' + escapeHTML(t) + '</li>'; }).join('');
+  }
+  return '<div class="vr-keypoints">' +
+    '<div class="vr-kp-col"><div class="vr-kp-h">重要な強み</div><ul>' + list(strengths) + '</ul></div>' +
+    '<div class="vr-kp-col vr-kp-warn"><div class="vr-kp-h">重要な課題</div><ul>' + list(challenges) + '</ul></div>' +
+    '</div>';
+}
+
+// ---- プランの深さに応じてVISUAL RESULT全体を組み立てる ----
+function renderVisualResult(scores, opts){
+  opts = opts || {};
+  var html = '<div class="vr-wrap">';
+  html += '<div class="vr-tag">VISUAL RESULT' + (opts.sample ? '<span class="vr-sample-badge">SAMPLE</span>' : '') + '</div>';
+  html += renderScoreHeader(scores.overall, opts.scoreLabel);
+  html += '<div class="vr-radar">' + renderRadarChartSVG(scores) + '</div>';
+  html += '<div class="vr-note">回答内容をもとにルールベースで算出した目安です。診断・保証を行うものではありません。</div>';
+  if(opts.keyPoints){
+    html += '<div class="vr-block-h">重要ポイント</div>' + renderKeyPoints(opts.keyPoints.strengths, opts.keyPoints.challenges);
+  }
+  if(opts.swot){
+    html += '<div class="vr-block-h">SWOT分析</div>' + renderSWOT(opts.swot);
+  }
+  if(opts.c3){
+    html += '<div class="vr-block-h">3C分析</div>' + render3C(opts.c3);
+  }
+  html += '<div class="vr-block-h">SUMMARY</div>' + renderSummary(opts.summary);
+  html += '<div class="vr-block-h">ACTION</div>' + renderActions(opts.actions);
+  html += '</div>';
+  return html;
+}
+
+
 function buildScoutReportHTML(a){
   var company = fallback(av(a,'company_name'), av(a,'industry') || '貴社');
+  var scores = computeScoutScores(a);
+  var swot = buildScoutSWOT(a);
   var html = reportHeader('SAMPLE / SCOUT', '可能性マップ', company + ' の分析結果');
+  html += renderVisualResult(scores, {
+    scoreLabel: '事業可能性スコア',
+    keyPoints: { strengths: swot.strengths, challenges: swot.weaknesses.concat(swot.threats).slice(0,3) },
+    summary: buildSummaryText(scores),
+    actions: buildActionsList(scores, a)
+  });
   html += reportSection('会社プロフィール', [
     '業種:' + fallback(av(a,'industry')),
     '事業形態:' + fallback(av(a,'biz_form')),
@@ -2310,7 +2695,17 @@ function buildScoutReportHTML(a){
 
 function buildDesignReportHTML(a){
   var name = fallback(av(a,'idea_name'), '新規事業(仮)');
+  var scores = computeDesignScores(a);
+  var swot = buildDesignSWOT(a);
+  var c3 = buildDesign3C(a, scores);
   var html = reportHeader('SAMPLE / DESIGN', '新規事業設計シート', name);
+  html += renderVisualResult(scores, {
+    scoreLabel: '事業設計スコア',
+    swot: swot,
+    c3: c3,
+    summary: buildSummaryText(scores),
+    actions: buildActionsList(scores, a)
+  });
   html += reportSection('事業テーマ', [
     fallback(av(a,'idea_summary')),
     'きっかけ:' + fallback(av(a,'idea_trigger'))
@@ -2347,7 +2742,17 @@ function buildDesignReportHTML(a){
 
 function buildGrowthReportHTML(a){
   var name = fallback(av(a,'target_business'), '対象事業');
+  var scores = computeGrowthScores(a);
+  var swot = buildGrowthSWOT(a);
+  var c3 = buildGrowth3C(a, scores);
   var html = reportHeader('SAMPLE / GROWTH', '事業成長マップ', name);
+  html += renderVisualResult(scores, {
+    scoreLabel: '成長ポテンシャルスコア',
+    swot: swot,
+    c3: c3,
+    summary: buildSummaryText(scores),
+    actions: buildActionsList(scores, a)
+  });
   html += reportSection('現在地', [
     '売上規模:' + fallback(av(a,'current_sales_scale')),
     '売上構成:' + fallback(av(a,'sales_composition')),
@@ -2380,7 +2785,19 @@ function buildGrowthReportHTML(a){
 function buildSetScoutDesignReportHTML(a){
   var company = fallback(av(a,'company_name'), av(a,'industry') || '貴社');
   var idea = fallback(av(a,'idea_name'), '新規事業(仮)');
+  var scoutScores = computeScoutScores(a);
+  var designScores = computeDesignScores(a);
+  var scores = averageScoreSets([scoutScores, designScores]);
+  var swot = mergeSWOT([buildScoutSWOT(a), buildDesignSWOT(a)]);
+  var c3 = buildDesign3C(a, scores);
   var html = reportHeader('SET / SCOUT + DESIGN', '可能性 × 事業設計シート', company + ' / ' + idea);
+  html += renderVisualResult(scores, {
+    scoreLabel: '総合スコア(SCOUT + DESIGN)',
+    swot: swot,
+    c3: c3,
+    summary: buildSummaryText(scores),
+    actions: buildActionsList(scores, a)
+  });
   html += reportSection('会社プロフィール', [
     '業種:' + fallback(av(a,'industry')),
     '事業形態:' + fallback(av(a,'biz_form')),
@@ -2421,7 +2838,19 @@ function buildSetScoutDesignReportHTML(a){
 
 function buildSetDesignGrowthReportHTML(a){
   var idea = fallback(av(a,'idea_name'), '新規事業(仮)');
+  var designScores = computeDesignScores(a);
+  var growthScores = computeGrowthScores(a);
+  var scores = averageScoreSets([designScores, growthScores]);
+  var swot = mergeSWOT([buildDesignSWOT(a), buildGrowthSWOT(a)]);
+  var c3 = buildDesign3C(a, scores);
   var html = reportHeader('SET / DESIGN + GROWTH', '事業設計 × 成長ロードマップ', idea);
+  html += renderVisualResult(scores, {
+    scoreLabel: '総合スコア(DESIGN + GROWTH)',
+    swot: swot,
+    c3: c3,
+    summary: buildSummaryText(scores),
+    actions: buildActionsList(scores, a)
+  });
   html += reportSection('事業テーマ', [
     fallback(av(a,'idea_summary')),
     'ターゲット:' + fallback(av(a,'target_customer')),
@@ -2460,7 +2889,17 @@ function buildSetDesignGrowthReportHTML(a){
 function buildSetFullReportHTML(a){
   var company = fallback(av(a,'company_name'), av(a,'industry') || '貴社');
   var idea = fallback(av(a,'idea_name'), '新規事業(仮)');
+  var scores = averageScoreSets([computeScoutScores(a), computeDesignScores(a), computeGrowthScores(a)]);
+  var swot = mergeSWOT([buildScoutSWOT(a), buildDesignSWOT(a), buildGrowthSWOT(a)]);
+  var c3 = buildDesign3C(a, scores);
   var html = reportHeader('SET / FULL', '可能性 × 事業設計 × 成長ロードマップ', company + ' / ' + idea);
+  html += renderVisualResult(scores, {
+    scoreLabel: '総合スコア(SCOUT + DESIGN + GROWTH)',
+    swot: swot,
+    c3: c3,
+    summary: buildSummaryText(scores),
+    actions: buildActionsList(scores, a)
+  });
   html += reportSection('会社プロフィール・現在の事業', [
     '業種:' + fallback(av(a,'industry')),
     '所在地域:' + fallback(av(a,'area')),
@@ -2516,7 +2955,6 @@ function buildSparkInstruction(a){
   var t = '';
   t += section('あなたの役割', 'あなたは新規事業のアイデア出しに付き合う、思考の壁打ち相手です。');
   t += section('目的', 'まだラフな思いつきの段階にあるアイデアを、否定せずに広げ、次に考えるべき問いを提示してください。');
-  t += section('分析の前提条件', GUARDRAILS_TEXT);
   t += section('思いついたこと', fallback(av(a,'spark_idea')));
   t += section('分野', fallback(av(a,'spark_field')));
   t += section('きっかけ', fallback(av(a,'spark_trigger')));
@@ -2527,7 +2965,7 @@ function buildSparkInstruction(a){
     '1. このアイデアの面白さ・可能性はどこにあると思いますか。\n' +
     '2. まだ曖昧な部分を明確にするために、私に聞くべき質問を3つ挙げてください。\n' +
     '3. このアイデアをもう少し具体化するとしたら、次に何を考えるべきですか。');
-  t += section('出力形式', '結論を急がず、壁打ち相手として、問いかけを交えながら簡潔に応答してください。\n' + TLDR_FORMAT_TEXT);
+  t += section('出力形式', '結論を急がず、壁打ち相手として、問いかけを交えながら簡潔に応答してください。');
   return t.trim();
 }
 
@@ -2535,25 +2973,10 @@ function section(title, body){
   return '【' + title + '】\n' + (body && body.trim() ? body : '(特になし)') + '\n\n';
 }
 
-// ------------------------------------------------------------
-// 全プラン共通:分析の前提条件・TL;DR形式の出力ルール
-// ------------------------------------------------------------
-var GUARDRAILS_TEXT =
-  'この指示書は、過去の会話・保存されたメモリ・プロフィール情報・これまでの相談内容とは独立した、新規の分析として扱ってください。\n' +
-  'ここに記載された情報のみを分析対象とし、過去の文脈から情報を補完・推測しないでください。\n' +
-  '分析に必要な情報が不足している場合は、その旨を「情報不足」として明示してください。\n' +
-  '結論をユーザーにとって都合の良い方向へ誘導せず、肯定・否定どちらにも偏らない客観的な視点で、課題・リスク・改善可能性を分析してください。\n' +
-  '一般論だけで結論を出さず、この指示書に含まれる具体的な情報を根拠に判断してください。';
-
-var TLDR_FORMAT_TEXT =
-  '出力の冒頭には必ず「# /TL;DR」という見出しを設けてください。ここには分析結果の中で最も重要な内容だけを、目安3〜5項目程度で簡潔にまとめてください(重要な内容がそれより少ない場合は、無理に項目数を合わせる必要はありません)。単なる要約ではなく「結局どういうことなのか」が最初に分かる内容にし、可能であれば、最も重要な発見・最も優先すべきこと・注意すべきリスク・次に考えるべきこと、を簡潔に示してください。\n' +
-  'TL;DRの後に、見出しを使い、箇条書き中心で詳細を続けてください。';
-
 function buildScoutInstruction(a){
   var t = '';
   t += section('あなたの役割', 'あなたは中小企業の経営・新規事業設計を専門とするコンサルタントです。');
   t += section('目的', 'この会社にとって、まだ気づいていない事業の可能性を発見し、優先順位をつけて提案してください。');
-  t += section('分析の前提条件', GUARDRAILS_TEXT);
   t += section('会社情報',
     '会社名・屋号:' + fallback(av(a,'company_name')) + '\n' +
     '業種:' + fallback(av(a,'industry')) + '\n' +
@@ -2595,7 +3018,7 @@ function buildScoutInstruction(a){
     '2. それぞれの可能性について、実現の難易度・必要な投資・期待できる効果を簡潔に評価してください。\n' +
     '3. 「経営者がやりたくないこと」「制約条件」に反しない範囲で、最も優先度が高いと思われるものを1つ提案し、理由を説明してください。');
   t += section('分析条件', 'リスク許容度:' + fallback(av(a,'risk_tolerance')) + '。この許容度を踏まえた現実的な提案をしてください。');
-  t += section('出力形式', TLDR_FORMAT_TEXT);
+  t += section('出力形式', '見出しを使い、箇条書き中心で、経営者が読んですぐ理解できる簡潔な文章でまとめてください。');
   return t.trim();
 }
 
@@ -2603,7 +3026,6 @@ function buildDesignInstruction(a){
   var t = '';
   t += section('あなたの役割', 'あなたは新規事業の事業設計を専門とするコンサルタントです。');
   t += section('目的', '以下の情報をもとに、この新規事業案を実行可能な形に磨き上げ、具体的なアクションプランを提案してください。');
-  t += section('分析の前提条件', GUARDRAILS_TEXT);
   t += section('事業アイデアの状態',
     '状態:' + fallback(av(a,'idea_status')) + '\n' +
     '事業名(仮):' + fallback(av(a,'idea_name')) + '\n' +
@@ -2638,7 +3060,7 @@ function buildDesignInstruction(a){
     '2. 収益モデル・価格設定について、より具体的な改善案を提示してください。\n' +
     '3. 最初の3ヶ月で行うべき具体的なアクションを、優先順位付きで提案してください。');
   t += section('分析条件', '想定リスクと撤退基準を踏まえ、現実的な範囲での提案をしてください。');
-  t += section('出力形式', TLDR_FORMAT_TEXT);
+  t += section('出力形式', '見出しを使い、箇条書き中心で、経営者が読んですぐ理解できる簡潔な文章でまとめてください。');
   return t.trim();
 }
 
@@ -2646,7 +3068,6 @@ function buildGrowthInstruction(a){
   var t = '';
   t += section('あなたの役割', 'あなたは中小企業の事業成長・展開戦略を専門とするコンサルタントです。');
   t += section('目的', '以下の情報をもとに、この事業をさらに成長させるための具体的な方向性と優先順位を提案してください。');
-  t += section('分析の前提条件', GUARDRAILS_TEXT);
   t += section('会社情報', '対象事業:' + fallback(av(a,'target_business')));
   t += section('現在の事業',
     '売上規模:' + fallback(av(a,'current_sales_scale')) + '\n' +
@@ -2681,7 +3102,7 @@ function buildGrowthInstruction(a){
     '2. それぞれの実現難易度、必要な投資、期待できる効果を比較してください。\n' +
     '3. 「やりたくない成長方法」を避けた上で、最も優先すべきシナリオとその理由を提案してください。');
   t += section('分析条件', '成長のスピード感:' + fallback(av(a,'growth_speed')) + 'を踏まえた提案をしてください。');
-  t += section('出力形式', TLDR_FORMAT_TEXT);
+  t += section('出力形式', '見出しを使い、箇条書き中心で、経営者が読んですぐ理解できる簡潔な文章でまとめてください。');
   return t.trim();
 }
 
@@ -2690,7 +3111,6 @@ function buildSetScoutDesignInstruction(a){
   var t = '';
   t += section('あなたの役割', 'あなたは中小企業の経営・新規事業設計を専門とするコンサルタントです。');
   t += section('目的', 'この会社の可能性を洗い出したうえで、その中から実行可能な新規事業案として設計してください。「可能性の発見」と「事業としての設計」を、一連の流れとして扱ってください。');
-  t += section('分析の前提条件', GUARDRAILS_TEXT);
   t += section('会社情報',
     '会社名:' + fallback(av(a,'company_name')) + '\n業種:' + fallback(av(a,'industry')) + '\n所在地域:' + fallback(av(a,'area')) + '\n従業員数:' + fallback(av(a,'employees')));
   t += section('現在の事業', fallback(av(a,'biz_summary')) + '\n主力商品・サービス:' + fallback(av(a,'main_products')));
@@ -2711,7 +3131,7 @@ function buildSetScoutDesignInstruction(a){
     '1. この会社の強み・経営資源・顧客資産をもとに、事業の可能性をどう評価しますか。\n' +
     '2. 検討中の事業アイデアは、その可能性を活かせていますか。改善点があれば指摘してください。\n' +
     '3. 「やりたくないこと」「投資可能額」の制約を踏まえ、最初の3ヶ月で行うべき具体的なアクションを優先順位付きで提案してください。');
-  t += section('出力形式', TLDR_FORMAT_TEXT);
+  t += section('出力形式', '見出しを使い、箇条書き中心で、経営者が読んですぐ理解できる簡潔な文章でまとめてください。');
   return t.trim();
 }
 
@@ -2719,7 +3139,6 @@ function buildSetDesignGrowthInstruction(a){
   var t = '';
   t += section('あなたの役割', 'あなたは新規事業の設計と、事業成長戦略の両方を専門とするコンサルタントです。');
   t += section('目的', 'この新規事業案を実行可能な形に磨き上げたうえで、立ち上げ後にどう成長・展開させていくかまで、一連の流れとして提案してください。');
-  t += section('分析の前提条件', GUARDRAILS_TEXT);
   t += section('事業アイデア',
     '概要:' + fallback(av(a,'idea_summary')) + '\nターゲット:' + fallback(av(a,'target_customer')) + '\n顧客課題:' + fallback(av(a,'customer_pain')) + '\n提供価値:' + fallback(av(a,'provided_value')) + '\n独自性:' + fallback(av(a,'unique_selling_point')));
   t += section('販売・収益モデル・必要資源',
@@ -2735,7 +3154,7 @@ function buildSetDesignGrowthInstruction(a){
     '1. この事業案の実行可能性を評価し、弱点や見落としている論点を指摘してください。\n' +
     '2. 立ち上げ後、どのタイミングでどの成長施策(新規顧客層・新地域・他社連携など)に着手すべきか、時間軸を示して提案してください。\n' +
     '3. 「やりたくない成長方法」を避けた上で、最初の1年間のロードマップを具体的に提案してください。');
-  t += section('出力形式', TLDR_FORMAT_TEXT);
+  t += section('出力形式', '見出しを使い、箇条書き中心で、経営者が読んですぐ理解できる簡潔な文章でまとめてください。');
   return t.trim();
 }
 
@@ -2743,7 +3162,6 @@ function buildSetFullInstruction(a){
   var t = '';
   t += section('あなたの役割', 'あなたは中小企業の経営・新規事業設計・事業成長戦略のすべてを専門とするコンサルタントです。');
   t += section('目的', 'この会社の可能性を発見し、新規事業として設計し、さらにその先の成長戦略までを、一連の流れとして提案してください。');
-  t += section('分析の前提条件', GUARDRAILS_TEXT);
   t += section('会社情報',
     '会社名:' + fallback(av(a,'company_name')) + '\n業種:' + fallback(av(a,'industry')) + '\n所在地域:' + fallback(av(a,'area')) + '\n従業員数:' + fallback(av(a,'employees')));
   t += section('現在の事業', fallback(av(a,'biz_summary')));
@@ -2764,7 +3182,7 @@ function buildSetFullInstruction(a){
     '2. 設計した事業アイデアは、その可能性を活かせていますか。改善点があれば指摘してください。\n' +
     '3. この事業が軌道に乗った後、どのように成長・展開させていくべきか、優先順位付きで提案してください。\n' +
     '4. 「やりたくないこと」「投資可能額」の制約を踏まえ、最初の3ヶ月・1年・その先という時間軸で、具体的なアクションを提案してください。');
-  t += section('出力形式', TLDR_FORMAT_TEXT);
+  t += section('出力形式', '見出しを使い、箇条書き中心で、経営者が読んですぐ理解できる簡潔な文章でまとめてください。');
   return t.trim();
 }
 
@@ -2813,68 +3231,35 @@ function renderResults(plan, answers){
     labelEl.textContent = subPlans.length > 1 ? (meta.label + ' の成果物') : meta.reportTitle;
     block.appendChild(labelEl);
 
-    var grid = document.createElement('div');
-    grid.className = 'result-block-grid';
-
-    // ---- レポート側 ----
-    var reportCol = document.createElement('div');
+    // ---- 成果物(VISUAL RESULT → SUMMARY → ACTION → 詳細) ----
     var canvas = document.createElement('div');
     canvas.id = 'report-canvas-' + idx;
     canvas.innerHTML = reportHTML;
-    reportCol.appendChild(canvas);
+    block.appendChild(canvas);
 
-    var actions = document.createElement('div');
-    actions.className = 'report-actions';
+    // ---- AI実行用プロンプト(初期状態では折りたたみ) ----
+    var promptDetails = document.createElement('details');
+    promptDetails.className = 'prompt-toggle';
+    var promptSummary = document.createElement('summary');
+    promptSummary.textContent = 'AI実行用プロンプトを表示';
+    promptDetails.appendChild(promptSummary);
 
-    var btnView = document.createElement('button');
-    btnView.className = 'is-ghost';
-    btnView.textContent = '成果物を見る';
-    btnView.onclick = (function(i){ return function(){ document.getElementById('report-canvas-' + i).scrollIntoView({behavior:'smooth', block:'center'}); }; })(idx);
+    var promptBody = document.createElement('div');
+    promptBody.className = 'prompt-toggle-body';
 
-    var btnImg = document.createElement('button');
-    btnImg.textContent = '画像として保存';
-    btnImg.onclick = (function(i, planKey){ return function(){ saveReportAsImage(i, planKey); }; })(idx, sp);
-
-    var btnPdf = document.createElement('button');
-    btnPdf.textContent = 'PDFとして保存';
-    btnPdf.onclick = (function(i, planKey){ return function(){ saveReportAsPDF(i, planKey); }; })(idx, sp);
-
-    var status = document.createElement('span');
-    status.className = 'save-status';
-    status.id = 'save-status-' + idx;
-
-    actions.appendChild(btnView);
-    actions.appendChild(btnImg);
-    actions.appendChild(btnPdf);
-    actions.appendChild(status);
-    reportCol.appendChild(actions);
-
-    var note1 = document.createElement('p');
-    note1.className = 'results-note';
-    note1.textContent = 'ボタンを押すと、お使いのブラウザの「ダウンロード」フォルダ(スマートフォンの場合は写真アプリやファイルアプリ)に保存されます。保存先はブラウザ・端末の設定により異なります。Seize側では保存されませんので、必ずこの画面でダウンロードしてください。';
-    reportCol.appendChild(note1);
-    grid.appendChild(reportCol);
-
-    // ---- AI指示書側 ----
-    var instrCol = document.createElement('div');
     var h3 = document.createElement('h3');
     h3.style.fontSize = '17px'; h3.style.marginBottom = '14px';
     h3.textContent = 'AI指示書' + (subPlans.length > 1 ? '(' + meta.label + ')' : '');
-    instrCol.appendChild(h3);
+    promptBody.appendChild(h3);
 
     var instrActions = document.createElement('div');
     instrActions.className = 'report-actions';
     instrActions.style.marginTop = '0'; instrActions.style.marginBottom = '14px';
-    var btnViewInstr = document.createElement('button');
-    btnViewInstr.className = 'is-ghost';
-    btnViewInstr.textContent = 'AI指示書を見る';
-    btnViewInstr.onclick = (function(i){ return function(){ document.getElementById('instruction-box-' + i).scrollIntoView({behavior:'smooth', block:'center'}); }; })(idx);
     var btnCopyInstr = document.createElement('button');
     btnCopyInstr.textContent = 'AI指示書をコピー';
     btnCopyInstr.onclick = (function(i){ return function(){ copyInstruction(i); }; })(idx);
-    instrActions.appendChild(btnViewInstr);
     instrActions.appendChild(btnCopyInstr);
-    instrCol.appendChild(instrActions);
+    promptBody.appendChild(instrActions);
 
     var wrap = document.createElement('div');
     wrap.className = 'instruction-wrap';
@@ -2893,19 +3278,19 @@ function renderResults(plan, answers){
     wrap.appendChild(copied);
     wrap.appendChild(copyBtn);
     wrap.appendChild(box);
-    instrCol.appendChild(wrap);
+    promptBody.appendChild(wrap);
 
     var note2 = document.createElement('p');
     note2.className = 'results-note';
     note2.textContent = 'この指示書をコピーし、ご自身がお使いのAIに貼り付けてください。';
-    instrCol.appendChild(note2);
+    promptBody.appendChild(note2);
 
     var noticeBox = document.createElement('div');
     noticeBox.className = 'ai-notice';
     noticeBox.innerHTML =
       '<p><b>入力できる文字量について</b><br>AIサービスによって、入力できる文字量や利用できる機能が異なります。特に無料プランでは、長い指示書を一度に入力できない場合があります。その場合は、指示書を複数回に分けて入力してください。</p>' +
       '<p><b>AIによる回答の違いについて</b><br>同じSeizeの指示書を使用しても、Claude、ChatGPT、Geminiなど、使用するAIによって回答の内容・構成・表現が異なる場合があります。</p>';
-    instrCol.appendChild(noticeBox);
+    promptBody.appendChild(noticeBox);
 
     var aiLinks = document.createElement('div');
     aiLinks.className = 'ai-links';
@@ -2913,10 +3298,11 @@ function renderResults(plan, answers){
       '<a class="is-recommend" href="https://claude.ai" target="_blank" rel="noopener">Claudeで使う(推奨)</a>' +
       '<a href="https://chat.openai.com" target="_blank" rel="noopener">ChatGPTで使う</a>' +
       '<a href="https://gemini.google.com" target="_blank" rel="noopener">Geminiで使う</a>';
-    instrCol.appendChild(aiLinks);
+    promptBody.appendChild(aiLinks);
 
-    grid.appendChild(instrCol);
-    block.appendChild(grid);
+    promptDetails.appendChild(promptBody);
+    block.appendChild(promptDetails);
+
     body.appendChild(block);
   });
 
@@ -2961,192 +3347,6 @@ function fallbackCopy(text, cb){
 }
 
 // ============================================================
-// 画像・PDFダウンロード(ブラウザ側処理のみ。AI APIは使用しません)
-// ============================================================
-
-// プランごとの正式なファイル名
-var FILE_NAME_MAP = {
-  scout:           'Seize_SCOUT_可能性マップ',
-  design:          'Seize_DESIGN_新規事業設計シート',
-  growth:          'Seize_GROWTH_事業成長マップ',
-  setScoutDesign:  'Seize_Foundation_可能性発見・事業設計レポート',
-  setDesignGrowth: 'Seize_Advance_事業設計・成長戦略レポート',
-  setFull:         'Seize_ORBIT_可能性・事業・成長統合レポート',
-  spark:           'Seize_SPARK_ひらめきメモ'
-};
-
-function ensureLibsReady(){
-  if(window.__seizeLibsReady){ return window.__seizeLibsReady; }
-  return Promise.resolve(typeof html2canvas !== 'undefined' && typeof window.jspdf !== 'undefined');
-}
-
-// 処理が固まって無反応に見えるのを防ぐため、一定時間で必ずタイムアウトさせる
-function withTimeout(promise, ms, label){
-  return new Promise(function(resolve, reject){
-    var timer = setTimeout(function(){
-      reject(new Error((label || '処理') + 'に時間がかかりすぎました'));
-    }, ms);
-    promise.then(function(v){ clearTimeout(timer); resolve(v); },
-                 function(e){ clearTimeout(timer); reject(e); });
-  });
-}
-
-function setSaveStatus(idx, text, type){
-  var el = document.getElementById('save-status-' + idx);
-  if(!el) return;
-  el.textContent = text;
-  el.className = 'save-status' + (type ? ' is-' + type : '');
-  if(type === 'success'){
-    setTimeout(function(){
-      if(el.textContent === text){ el.textContent = ''; el.className = 'save-status'; }
-    }, 3500);
-  }
-}
-
-// ============================================================
-// 保存の共通フォールバック処理
-// ------------------------------------------------------------
-// html2canvasやWeb共有API呼び出しは非同期処理を挟むため、その間に
-// 「ユーザー操作の有効期限」が切れてしまい、Android/iOSの一部環境で
-// navigator.share()やwindow.open()が静かにブロックされることがあります。
-// そのため、モバイルでは「ブラウザ標準のビューアで開き、長押し保存・
-// 共有ボタンから保存してもらう」方式を優先し、確実性を高めています。
-// ============================================================
-function isMobileDevice(){
-  return /Android|iP(hone|od|ad)|Mobile/i.test(navigator.userAgent);
-}
-
-function saveBlob(blob, fileName, idx, kindLabel){
-  var url = URL.createObjectURL(blob);
-
-  if(isMobileDevice()){
-    // モバイル: ブラウザの標準ビューアで開き、長押し保存/共有ボタンでの保存を案内する
-    var opened = null;
-    try{ opened = window.open(url, '_blank'); }catch(e){ opened = null; }
-
-    if(opened){
-      var guide = (kindLabel === '画像')
-        ? '別タブで画像が開きました。画像を長押しして「画像を保存」を選んでください'
-        : '別タブでPDFが開きました。画面上部の共有・ダウンロードボタンから保存してください';
-      setSaveStatus(idx, guide, 'success');
-      setTimeout(function(){ URL.revokeObjectURL(url); }, 120000);
-      return;
-    }
-
-    // ポップアップブロック等で開けなかった場合は、通常のダウンロードを試みる
-    tryAnchorDownload(blob, url, fileName, idx, kindLabel);
-    return;
-  }
-
-  // PC: 通常のダウンロード(Blob + <a download>)
-  tryAnchorDownload(blob, url, fileName, idx, kindLabel);
-}
-
-function tryAnchorDownload(blob, url, fileName, idx, kindLabel){
-  try{
-    var link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setSaveStatus(idx, 'ダウンロードしました', 'success');
-  }catch(err){
-    console.error('Seize: ダウンロード試行に失敗', err);
-    try{
-      window.open(url, '_blank');
-      setSaveStatus(idx, '保存されない場合は、開いた画面から保存してください', 'success');
-    }catch(err2){
-      setSaveStatus(idx, 'ファイルの生成に失敗しました(' + (err2 && err2.message ? err2.message : '不明なエラー') + ')。もう一度お試しください。', 'error');
-    }
-  }
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
-}
-
-function saveReportAsImage(idx, planKey){
-  idx = idx || 0;
-  var el = document.getElementById('report-canvas-' + idx);
-  if(!el) return;
-  setSaveStatus(idx, '成果物を準備しています…', 'loading');
-
-  withTimeout(ensureLibsReady(), 15000, 'ライブラリの読み込み').then(function(ready){
-    if(!ready || typeof html2canvas === 'undefined'){
-      setSaveStatus(idx, 'ファイルの生成に失敗しました(ライブラリ読み込み)。通信環境をご確認のうえ、もう一度お試しください。', 'error');
-      return;
-    }
-    return withTimeout(html2canvas(el, {backgroundColor:'#FBFAF7', scale:2, useCORS:true}), 20000, '画像の生成').then(function(canvas){
-      var fileName = (FILE_NAME_MAP[planKey] || 'Seize_report') + '.png';
-      canvas.toBlob(function(blob){
-        if(!blob){
-          setSaveStatus(idx, 'ファイルの生成に失敗しました(画像データの作成)。もう一度お試しください。', 'error');
-          return;
-        }
-        saveBlob(blob, fileName, idx, '画像');
-      }, 'image/png');
-    });
-  }).catch(function(err){
-    console.error('Seize: 画像保存に失敗', err);
-    setSaveStatus(idx, 'ファイルの生成に失敗しました(' + (err && err.message ? err.message : '不明なエラー') + ')。もう一度お試しください。', 'error');
-  });
-}
-
-function saveReportAsPDF(idx, planKey){
-  idx = idx || 0;
-  var el = document.getElementById('report-canvas-' + idx);
-  if(!el) return;
-  setSaveStatus(idx, '成果物を準備しています…', 'loading');
-
-  withTimeout(ensureLibsReady(), 15000, 'ライブラリの読み込み').then(function(ready){
-    if(!ready || typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined'){
-      setSaveStatus(idx, 'ファイルの生成に失敗しました(ライブラリ読み込み)。通信環境をご確認のうえ、もう一度お試しください。', 'error');
-      return;
-    }
-    return withTimeout(html2canvas(el, {backgroundColor:'#FBFAF7', scale:2, useCORS:true}), 20000, 'PDFの生成').then(function(canvas){
-      var jsPDF = window.jspdf.jsPDF;
-      var pdf = new jsPDF({ orientation:'portrait', unit:'pt', format:'a4' });
-      var pageW = pdf.internal.pageSize.getWidth();
-      var pageH = pdf.internal.pageSize.getHeight();
-      var margin = 24;
-      var usableW = pageW - margin * 2;
-      var usableH = pageH - margin * 2;
-
-      // canvasの px を pt に変換するスケール、および1ページに収まる高さ(px)
-      var scale = usableW / canvas.width;
-      var pageHeightPx = usableH / scale;
-      var totalPages = Math.max(1, Math.ceil(canvas.height / pageHeightPx));
-
-      for(var p = 0; p < totalPages; p++){
-        var sliceHeightPx = Math.min(pageHeightPx, canvas.height - p * pageHeightPx);
-        if(sliceHeightPx <= 0) break;
-
-        var pageCanvas = document.createElement('canvas');
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = sliceHeightPx;
-        var ctx = pageCanvas.getContext('2d');
-        ctx.fillStyle = '#FBFAF7';
-        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-        ctx.drawImage(
-          canvas,
-          0, p * pageHeightPx, canvas.width, sliceHeightPx,
-          0, 0, canvas.width, sliceHeightPx
-        );
-
-        var imgData = pageCanvas.toDataURL('image/png');
-        if(p > 0){ pdf.addPage(); }
-        pdf.addImage(imgData, 'PNG', margin, margin, usableW, sliceHeightPx * scale);
-      }
-
-      var fileName = (FILE_NAME_MAP[planKey] || 'Seize_report') + '.pdf';
-      var pdfBlob = pdf.output('blob');
-      saveBlob(pdfBlob, fileName, idx, 'PDF');
-    });
-  }).catch(function(err){
-    console.error('Seize: PDF保存に失敗', err);
-    setSaveStatus(idx, 'ファイルの生成に失敗しました(' + (err && err.message ? err.message : '不明なエラー') + ')。もう一度お試しください。', 'error');
-  });
-}
-
-// ============================================================
 // ルーティング(購入後の ?session=xxx / ?form=scout|design|growth|spark を検出)
 // SPARKの場合、?grant=5 が付いていればチケットを付与する
 // ============================================================
@@ -3185,6 +3385,48 @@ setInterval(function(){
   var hearingEl = document.getElementById('hearing');
   if(hearingEl && !hearingEl.hidden){ persistHearingSession(); }
 }, 20000);
+
+// ============================================================
+// LPサンプルセクション:実際の成果物と同じコンポーネント
+// (renderVisualResult等)を使い、架空のデータで描画する。
+// 「サンプル」「イメージ」であることを明示し、実際のユーザー
+// データは一切使用しない。
+// ============================================================
+function renderLPSample(){
+  var el = document.getElementById('lp-sample-body');
+  if(!el) return;
+
+  var sampleScores = { market:8, profitability:9, feasibility:7, uniqueness:6, sustainability:8 };
+  sampleScores.overall = avgScores(sampleScores);
+
+  var sampleSWOT = {
+    strengths: ['地域内での高い認知と信頼', '安定したリピート顧客基盤', '独自のノウハウ・技術力'],
+    weaknesses: ['新規顧客の獲得チャネルが限定的', '価格帯の見直しが未着手'],
+    opportunities: ['新しい客層への展開余地', 'デジタル発信による認知拡大'],
+    threats: ['近隣エリアでの競合増加']
+  };
+  var sample3C = {
+    customer: { score:8, text:'既存顧客との関係は強く、リピート利用が中心。' },
+    company: { score:7, text:'独自の技術力とノウハウが差別化の軸になっている。' },
+    competitor: { score:6, text:'直接競合は少ないが、価格競争が始まりつつある。' }
+  };
+  var sampleSummary = '市場性と収益性は高く、既存顧客との関係性も強みです。一方で独自性と実現性には改善余地があります。まずは小規模な検証から始めることが推奨されます。';
+  var sampleActions = ['顧客ニーズを具体的に検証する', '競合との差別化ポイントを明確にする', '小規模なテストを実施する'];
+
+  var html = reportHeader('SAMPLE / DESIGN', '新規事業設計シート', '架空の事業データによるサンプル');
+  html += renderVisualResult(sampleScores, {
+    sample: true,
+    scoreLabel: '事業設計スコア',
+    swot: sampleSWOT,
+    c3: sample3C,
+    summary: sampleSummary,
+    actions: sampleActions
+  });
+  html += '<div class="doc-foot">これはサンプル・イメージです。実際のユーザーデータではありません。実際の成果物は、いただいたご回答をもとにSeizeが自動的に構造化します(AIによる生成は行っていません)。</div>';
+  el.innerHTML = html;
+}
+window.addEventListener('DOMContentLoaded', renderLPSample);
+
 </script>
 
 </body>

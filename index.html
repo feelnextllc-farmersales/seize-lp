@@ -228,8 +228,10 @@
   .set-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:24px;}
   @media(max-width:900px){.set-grid{grid-template-columns:1fr;}}
   .set-card{border:1px solid var(--line); border-radius:var(--radius); padding:30px 26px; background:var(--paper); position:relative; display:flex; flex-direction:column;}
-  .set-card.is-full{border-color:var(--mint-deep); background:linear-gradient(180deg,#EFFAF7,var(--paper));}
+  .set-card.is-recommend{border-color:var(--mint-deep); background:linear-gradient(180deg,#EFFAF7,var(--paper));}
   .set-pick{position:absolute; top:-12px; right:22px; background:var(--mint-deep); color:var(--paper); font-family:var(--mono); font-size:11px; letter-spacing:0.08em; padding:5px 12px; border-radius:20px;}
+  .set-card.is-top{border-color:var(--navy-900); background:linear-gradient(180deg,#F3F1EA,var(--paper));}
+  .set-top-tag{position:absolute; top:-12px; right:22px; background:var(--navy-900); color:var(--paper); font-family:var(--mono); font-size:11px; letter-spacing:0.08em; padding:5px 12px; border-radius:20px;}
   .set-steps{font-family:var(--mono); font-size:12px; color:var(--ink-soft); letter-spacing:0.04em; margin-bottom:12px;}
   .set-name{font-family:var(--serif); font-weight:700; font-size:24px; color:var(--navy-900); margin-bottom:6px;}
   .set-card h4{font-family:var(--sans); font-weight:500; font-size:13.5px; color:var(--ink-soft); margin-bottom:14px;}
@@ -793,7 +795,7 @@
         <div class="compare-cell compare-label">価格感</div>
         <div class="compare-cell" data-th="AIにそのまま質問">無料〜数千円/月</div>
         <div class="compare-cell" data-th="経営コンサルティング">数十万円〜</div>
-        <div class="compare-cell is-seize" data-th="Seize">3,800円〜19,800円</div>
+        <div class="compare-cell is-seize" data-th="Seize">2,980円〜19,800円</div>
       </div>
       <div class="compare-row">
         <div class="compare-cell compare-label">スピード</div>
@@ -860,7 +862,7 @@
         <div class="plan-tag">Step 01</div>
         <h3>SCOUT</h3>
         <div class="plan-role">可能性を探す</div>
-        <div class="plan-price">¥3,800<span>税込 / 都度払い</span></div>
+        <div class="plan-price">¥2,980<span>税込 / 都度払い</span></div>
         <p class="plan-desc">自社の資源・強み・環境を整理し、事業の可能性の「芽」を洗い出します。</p>
         <ul class="plan-feat">
           <li>ヒアリング項目 8問</li>
@@ -874,7 +876,7 @@
         <div class="plan-tag">Step 02</div>
         <h3>DESIGN</h3>
         <div class="plan-role">新規事業を設計する</div>
-        <div class="plan-price">¥9,800<span>税込 / 都度払い</span></div>
+        <div class="plan-price">¥7,980<span>税込 / 都度払い</span></div>
         <p class="plan-desc">見つけた可能性を、実行できる新規事業のかたちに設計します。</p>
         <ul class="plan-feat">
           <li>ヒアリング項目 9問</li>
@@ -888,7 +890,7 @@
         <div class="plan-tag">Step 03</div>
         <h3>GROWTH</h3>
         <div class="plan-role">事業を広げる</div>
-        <div class="plan-price">¥19,800<span>税込 / 都度払い</span></div>
+        <div class="plan-price">¥10,800<span>税込 / 都度払い</span></div>
         <p class="plan-desc">既存事業・他社・異業種・地域・自社資産を掛け合わせ、展開可能性を設計します。</p>
         <ul class="plan-feat">
           <li>ヒアリング項目 9問</li>
@@ -911,12 +913,13 @@
     </div>
 
     <div class="set-grid">
-      <div class="set-card">
+      <div class="set-card is-recommend">
+        <div class="set-pick">おすすめ</div>
         <div class="set-steps">SCOUT + DESIGN</div>
         <div class="set-name">FOUNDATION</div>
         <h4>探索から事業設計まで</h4>
-        <div class="set-price-row"><span class="set-price">¥12,800</span><span class="set-was">¥13,600</span></div>
-        <div class="set-save">800円お得</div>
+        <div class="set-price-row"><span class="set-price">¥9,800</span><span class="set-was">¥10,960</span></div>
+        <div class="set-save">1,160円お得</div>
         <p class="set-desc">可能性を探すところから、その場で事業設計まで進めたい方に。</p>
         <button class="plan-cta" style="margin-top:20px;" onclick="goPurchase('setScoutDesign')">このセットを購入する</button>
       </div>
@@ -924,18 +927,18 @@
         <div class="set-steps">DESIGN + GROWTH</div>
         <div class="set-name">ADVANCE</div>
         <h4>事業設計から展開まで</h4>
-        <div class="set-price-row"><span class="set-price">¥27,800</span><span class="set-was">¥29,600</span></div>
-        <div class="set-save">1,800円お得</div>
+        <div class="set-price-row"><span class="set-price">¥16,800</span><span class="set-was">¥18,780</span></div>
+        <div class="set-save">1,980円お得</div>
         <p class="set-desc">新規事業の設計から、成長・展開の設計まで一気に進めたい方に。</p>
         <button class="plan-cta" style="margin-top:20px;" onclick="goPurchase('setDesignGrowth')">このセットを購入する</button>
       </div>
-      <div class="set-card is-full">
-        <div class="set-pick">おすすめ</div>
+      <div class="set-card is-top">
+        <div class="set-top-tag">ALL SET</div>
         <div class="set-steps">SCOUT + DESIGN + GROWTH</div>
         <div class="set-name">ORBIT</div>
         <h4>探索・設計・展開のすべて</h4>
-        <div class="set-price-row"><span class="set-price">¥29,800</span><span class="set-was">¥33,400</span></div>
-        <div class="set-save">3,600円お得</div>
+        <div class="set-price-row"><span class="set-price">¥19,800</span><span class="set-was">¥21,760</span></div>
+        <div class="set-save">1,960円お得</div>
         <p class="set-desc">探索・設計・展開、すべての工程をワンストップで。</p>
         <button class="plan-cta" style="margin-top:20px;" onclick="goPurchase('setFull')">このセットを購入する</button>
       </div>
@@ -1122,7 +1125,7 @@
 <dialog id="dlg-scout">
   <div class="dlg-head">
     <div><h3>SCOUT</h3><div class="dlg-role">可能性を探す</div></div>
-    <div class="dlg-price">¥3,800</div>
+    <div class="dlg-price">¥2,980</div>
     <button class="dlg-close" onclick="this.closest('dialog').close()" aria-label="閉じる">✕</button>
   </div>
   <div class="dlg-body">
@@ -1145,7 +1148,7 @@
 <dialog id="dlg-design">
   <div class="dlg-head">
     <div><h3>DESIGN</h3><div class="dlg-role">新規事業を設計する</div></div>
-    <div class="dlg-price">¥9,800</div>
+    <div class="dlg-price">¥7,980</div>
     <button class="dlg-close" onclick="this.closest('dialog').close()" aria-label="閉じる">✕</button>
   </div>
   <div class="dlg-body">
@@ -1169,7 +1172,7 @@
 <dialog id="dlg-growth">
   <div class="dlg-head">
     <div><h3>GROWTH</h3><div class="dlg-role">事業を広げる</div></div>
-    <div class="dlg-price">¥19,800</div>
+    <div class="dlg-price">¥10,800</div>
     <button class="dlg-close" onclick="this.closest('dialog').close()" aria-label="閉じる">✕</button>
   </div>
   <div class="dlg-body">
@@ -1284,7 +1287,7 @@
       <tr><th>運営責任者</th><td>小林大二</td></tr>
       <tr><th>所在地</th><td>長野県小諸市平原487-1</td></tr>
       <tr><th>連絡先</th><td>feelnext.llc@gmail.com</td></tr>
-      <tr><th>販売価格</th><td>SCOUT:3,800円(税込)/ DESIGN:9,800円(税込)/ GROWTH:19,800円(税込)/ SPARK:1,980円(税込・5回分)/ セットプランは各セットページ表示の価格(税込)</td></tr>
+      <tr><th>販売価格</th><td>SCOUT:2,980円(税込)/ DESIGN:7,980円(税込)/ GROWTH:10,800円(税込)/ SPARK:1,980円(税込・5回分)/ セットプランは各セットページ表示の価格(税込)</td></tr>
       <tr><th>商品代金以外の必要料金</th><td>インターネット接続料金、通信料金は利用者のご負担となります。</td></tr>
       <tr><th>お支払い方法</th><td>クレジットカード各種、Apple Pay、Link</td></tr>
       <tr><th>お支払い時期</th><td>ご注文時にお支払いいただきます。</td></tr>
@@ -1346,12 +1349,12 @@
   // それをそのまま '' の中に貼り付けるだけで、購入ボタンが機能します。
   // ============================================================
   const STRIPE_LINKS = {
-    scout: 'https://buy.stripe.com/4gM00c2iYcKxcqHgWU0RG01',            // 例: 'https://buy.stripe.com/xxxxxxxxxxxx'
-    design: 'https://buy.stripe.com/14A6oA6zeeSFgGX2200RG02',
-    growth: 'https://buy.stripe.com/6oU28kaPu11P1M3eOM0RG03',
-    setScoutDesign: 'https://buy.stripe.com/00w5kw3n225T62jgWU0RG04',
-    setDesignGrowth: 'https://buy.stripe.com/5kQ8wIaPuaCp4Yf0XW0RG05',
-    setFull: 'https://buy.stripe.com/8x29AM2iY4e18arayw0RG06',
+    scout: 'https://buy.stripe.com/4gM5kw3n24e12Q7bCA0RG0k',            // 例: 'https://buy.stripe.com/xxxxxxxxxxxx'
+    design: 'https://buy.stripe.com/5kQ00c8Hm9yl9evcGE0RG0l',
+    growth: 'https://buy.stripe.com/4gMfZa4r66m962jayw0RG0m',
+    setScoutDesign: 'https://buy.stripe.com/cNi9AMf5K7qd0HZ2200RG0n',
+    setDesignGrowth: 'https://buy.stripe.com/cNicMY3n27qd62j2200RG0o',
+    setFull: 'https://buy.stripe.com/28E8wI9LqaCp0HZcGE0RG0p',
     spark: 'https://buy.stripe.com/dRmeV6e1Gh0Naiz4a80RG0j'              // SPARK(5回分・1,980円)
   };
 
@@ -1373,9 +1376,9 @@
   var diagAnswers = {q1:null, q2:null, q3:null};
 
   var diagMeta = {
-    SCOUT:{price:'¥3,800', role:'可能性を探す', desc:'自社の強み・資源・環境を整理し、事業の可能性の「芽」を洗い出します。', dialog:'dlg-scout'},
-    DESIGN:{price:'¥9,800', role:'新規事業を設計する', desc:'見つかった可能性を、実行できる新規事業として設計します。', dialog:'dlg-design'},
-    GROWTH:{price:'¥19,800', role:'事業を広げる', desc:'既存事業と他社・異業種・地域・自社資産を掛け合わせ、展開可能性を設計します。', dialog:'dlg-growth'}
+    SCOUT:{price:'¥2,980', role:'可能性を探す', desc:'自社の強み・資源・環境を整理し、事業の可能性の「芽」を洗い出します。', dialog:'dlg-scout'},
+    DESIGN:{price:'¥7,980', role:'新規事業を設計する', desc:'見つかった可能性を、実行できる新規事業として設計します。', dialog:'dlg-design'},
+    GROWTH:{price:'¥10,800', role:'事業を広げる', desc:'既存事業と他社・異業種・地域・自社資産を掛け合わせ、展開可能性を設計します。', dialog:'dlg-growth'}
   };
 
   function diagAnswer(q, plan){
@@ -2940,15 +2943,360 @@ function buildSetFullReportHTML(a){
 // ============================================================
 // AI指示書生成
 // ============================================================
+
+// 全プラン共通で、AI指示書の先頭に必ず付与する分析原則。
+// プランごとの個別指示書(buildScoutInstruction等)は、この直後に
+// 「分析対象の情報」として続く。
+var COMMON_ANALYSIS_PROMPT =
+'━━━━━━━━━━━━━━━━━━\n' +
+'■ 分析の基本原則\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'\n' +
+'この分析は、このプロンプト内に記載された情報だけを対象としてください。\n' +
+'\n' +
+'ユーザーが過去にAIと行った会話、\n' +
+'保存されたメモリ、\n' +
+'プロフィール情報、\n' +
+'過去の相談内容、\n' +
+'過去に生成された回答、\n' +
+'現在の会話以外の文脈\n' +
+'\n' +
+'などは分析に使用しないでください。\n' +
+'\n' +
+'この分析を、過去のやり取りとは完全に独立した新規分析として扱ってください。\n' +
+'\n' +
+'過去の情報を推測・補完してはいけません。\n' +
+'\n' +
+'情報が不足している場合は、無理に結論を出さず、\n' +
+'\n' +
+'「情報不足」\n' +
+'\n' +
+'と明示してください。\n' +
+'\n' +
+'また、ユーザーに都合のよい結論へ誘導しないでください。\n' +
+'\n' +
+'肯定・否定のどちらにも偏らず、\n' +
+'\n' +
+'・事実\n' +
+'・回答内容\n' +
+'・確認できる情報\n' +
+'・合理的に導ける内容\n' +
+'\n' +
+'を根拠として、客観的に分析してください。\n' +
+'\n' +
+'一般論だけで結論を出さないでください。\n' +
+'\n' +
+'必ず、このプロンプト内に含まれる具体的な情報を根拠として分析してください。\n' +
+'\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'■ 推測について\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'\n' +
+'明確な根拠がない情報について、\n' +
+'\n' +
+'「おそらく」\n' +
+'「きっと」\n' +
+'「一般的には」\n' +
+'\n' +
+'などの推測だけで断定しないでください。\n' +
+'\n' +
+'必要な情報がない場合は、\n' +
+'\n' +
+'「判断できない」\n' +
+'「情報不足」\n' +
+'\n' +
+'としてください。\n' +
+'\n' +
+'ただし、入力情報から合理的に導ける仮説については、\n' +
+'\n' +
+'「仮説」\n' +
+'「可能性」\n' +
+'\n' +
+'として明確に区別して提示してください。\n' +
+'\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'■ 成果物の基本方針\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'\n' +
+'成果物は「長い文章を読むレポート」ではなく、\n' +
+'\n' +
+'「見て理解できる分析」\n' +
+'\n' +
+'を基本としてください。\n' +
+'\n' +
+'文章を必要以上に長くしないでください。\n' +
+'\n' +
+'可能な限り、\n' +
+'\n' +
+'・スコア\n' +
+'・チャート\n' +
+'・図解\n' +
+'・比較\n' +
+'・ランキング\n' +
+'・優先順位\n' +
+'・カテゴリー\n' +
+'・カード\n' +
+'・短い要約\n' +
+'\n' +
+'など、視覚的に理解できる形式を優先してください。\n' +
+'\n' +
+'文章はビジュアル成果物を補足する役割としてください。\n' +
+'\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'■ 最初に結論を表示\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'\n' +
+'成果物の冒頭には必ず、\n' +
+'\n' +
+'# /TL;DR\n' +
+'\n' +
+'を設けてください。\n' +
+'\n' +
+'ここでは、分析結果の中でも最も重要な内容だけを簡潔にまとめてください。\n' +
+'\n' +
+'目安は3〜5項目程度です。\n' +
+'\n' +
+'ただし、無理に項目数を合わせる必要はありません。\n' +
+'\n' +
+'重要な内容が2つしかない場合は2つにしてください。\n' +
+'\n' +
+'重要な内容が1つしかない場合は1つで構いません。\n' +
+'\n' +
+'単なる要約ではなく、\n' +
+'\n' +
+'「結局どういうことなのか」\n' +
+'\n' +
+'が最初に分かる内容にしてください。\n' +
+'\n' +
+'可能であれば、\n' +
+'\n' +
+'・最も重要な発見\n' +
+'・最も優先すべきこと\n' +
+'・注意すべきリスク\n' +
+'・次に考えるべきこと\n' +
+'\n' +
+'を簡潔に示してください。\n' +
+'\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'■ 詳細情報の扱い\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'\n' +
+'詳細な説明は最初からすべて表示しないでください。\n' +
+'\n' +
+'基本的には、\n' +
+'\n' +
+'「詳細を見る」\n' +
+'「分析の根拠を見る」\n' +
+'「詳しい分析を見る」\n' +
+'\n' +
+'などの折りたたみ式UIで表示できる構造を想定してください。\n' +
+'\n' +
+'ユーザーがまず結果を理解し、\n' +
+'必要な場合だけ詳細を確認できる構成にしてください。\n' +
+'\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'■ 数値・スコアについて\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'\n' +
+'スコアを使用する場合は、\n' +
+'\n' +
+'「何を意味する数字なのか」\n' +
+'\n' +
+'を必ず明確にしてください。\n' +
+'\n' +
+'スコアの高低だけで良し悪しを判断しないでください。\n' +
+'\n' +
+'例えば、\n' +
+'\n' +
+'・改善余地\n' +
+'・重要度\n' +
+'・優先度\n' +
+'・リスク\n' +
+'・適合度\n' +
+'\n' +
+'など、何を評価している数字なのかを明示してください。\n' +
+'\n' +
+'根拠のない精密な数値を作らないでください。\n' +
+'\n' +
+'入力情報から合理的に算出できない場合は、\n' +
+'無理に数値化せず、\n' +
+'\n' +
+'・高\n' +
+'・中\n' +
+'・低\n' +
+'\n' +
+'などの定性的評価を使用してください。\n' +
+'\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'■ 優先順位\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'\n' +
+'複数の課題・選択肢・可能性が存在する場合は、\n' +
+'単純な重要度だけで判断しないでください。\n' +
+'\n' +
+'可能な範囲で、\n' +
+'\n' +
+'・重要度\n' +
+'・緊急度\n' +
+'・影響度\n' +
+'・実行容易性\n' +
+'・期待効果\n' +
+'・リスク\n' +
+'\n' +
+'などを考慮し、\n' +
+'\n' +
+'「何を先に考えるべきか」\n' +
+'\n' +
+'が分かるようにしてください。\n' +
+'\n' +
+'ただし、入力情報から判断できない項目については、\n' +
+'推測で評価しないでください。\n' +
+'\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'■ リスクについて\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'\n' +
+'分析対象にリスクが存在する場合は、\n' +
+'単に問題を指摘するだけではなく、\n' +
+'\n' +
+'「何がリスクなのか」\n' +
+'「なぜ注意が必要なのか」\n' +
+'「可能であれば、どう回避・軽減できるか」\n' +
+'\n' +
+'まで簡潔に示してください。\n' +
+'\n' +
+'ただし、必要以上に不安を煽らないでください。\n' +
+'\n' +
+'リスクが確認できない場合は、\n' +
+'無理にリスクを作らないでください。\n' +
+'\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'■ 次の行動\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'\n' +
+'分析結果から具体的な次の行動が導ける場合は、\n' +
+'\n' +
+'# NEXT STEP\n' +
+'\n' +
+'として、最優先の行動を1〜3個程度提示してください。\n' +
+'\n' +
+'「何かをしてください」という抽象的な表現ではなく、\n' +
+'\n' +
+'「まず○○を確認する」\n' +
+'「○○を比較する」\n' +
+'「○○を一つ減らしてみる」\n' +
+'\n' +
+'など、できるだけ具体的にしてください。\n' +
+'\n' +
+'ただし、情報不足で具体的な行動を判断できない場合は、\n' +
+'無理に行動を提案しないでください。\n' +
+'\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'■ 出力構成\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'\n' +
+'基本的には以下の順番で構成してください。\n' +
+'\n' +
+'1. /TL;DR\n' +
+'2. メインとなるビジュアル分析\n' +
+'3. 重要な結果・優先順位\n' +
+'4. NEXT STEP\n' +
+'5. 詳細分析(折りたたみ)\n' +
+'6. 必要に応じて補足・注意事項\n' +
+'\n' +
+'分析内容によって不要な項目は省略してください。\n' +
+'\n' +
+'すべての項目を無理に埋める必要はありません。\n' +
+'\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'■ AIへの相談用テキストを生成する場合\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'\n' +
+'ユーザーがこの成果物を自分のAIにコピーして相談できるプロンプトを生成する場合は、必ず以下の条件を含めてください。\n' +
+'\n' +
+'このプロンプトを受け取ったAIは、\n' +
+'\n' +
+'・過去の会話\n' +
+'・保存されたメモリ\n' +
+'・プロフィール情報\n' +
+'・過去の相談内容\n' +
+'・既存の文脈\n' +
+'\n' +
+'を分析材料として使用せず、\n' +
+'\n' +
+'「このプロンプト内に記載された情報だけ」\n' +
+'\n' +
+'を分析対象としてください。\n' +
+'\n' +
+'このプロンプトを、過去の会話とは独立した新規相談として扱ってください。\n' +
+'\n' +
+'情報が不足している場合は、過去の会話から補完せず、\n' +
+'\n' +
+'「情報不足」\n' +
+'\n' +
+'と明示してください。\n' +
+'\n' +
+'また、ユーザーに都合のよい結論へ誘導せず、\n' +
+'客観的・中立的に分析してください。\n' +
+'\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'■ 文章のスタイル\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'\n' +
+'・簡潔\n' +
+'・客観的\n' +
+'・具体的\n' +
+'・誇張しない\n' +
+'・断定しすぎない\n' +
+'・冗長にしない\n' +
+'\n' +
+'ことを基本としてください。\n' +
+'\n' +
+'長い説明より、\n' +
+'\n' +
+'「何が分かったのか」\n' +
+'「何が重要なのか」\n' +
+'「何をすべきなのか」\n' +
+'\n' +
+'が短時間で理解できることを優先してください。\n' +
+'\n' +
+'専門用語を使用する場合は、必要に応じて簡単な説明を付けてください。\n' +
+'\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'■ 最終チェック\n' +
+'━━━━━━━━━━━━━━━━━━\n' +
+'\n' +
+'成果物を出力する前に、以下を確認してください。\n' +
+'\n' +
+'□ このプロンプト内の情報だけを分析しているか\n' +
+'□ 過去の会話やメモリを前提にしていないか\n' +
+'□ 根拠のない推測をしていないか\n' +
+'□ 情報不足を正直に示しているか\n' +
+'□ /TL;DRだけで結論が理解できるか\n' +
+'□ ビジュアル分析が文章よりも先に理解できる構成か\n' +
+'□ 詳細説明が折りたたみに適した長さになっているか\n' +
+'□ 優先順位が分かるか\n' +
+'□ リスクがあれば回避・軽減策まで示しているか\n' +
+'□ NEXT STEPが必要以上に多くなっていないか\n' +
+'□ ユーザーに都合のよい結論へ誘導していないか\n' +
+'□ 数値に根拠があるか\n' +
+'□ 不明なことを不明のまま扱っているか\n' +
+'\n' +
+'以上を満たした上で、最終成果物を作成してください。';
+
 function buildInstruction(plan, a){
-  if(plan === 'scout') return buildScoutInstruction(a);
-  if(plan === 'design') return buildDesignInstruction(a);
-  if(plan === 'growth') return buildGrowthInstruction(a);
-  if(plan === 'setScoutDesign') return buildSetScoutDesignInstruction(a);
-  if(plan === 'setDesignGrowth') return buildSetDesignGrowthInstruction(a);
-  if(plan === 'setFull') return buildSetFullInstruction(a);
-  if(plan === 'spark') return buildSparkInstruction(a);
-  return '';
+  var body = '';
+  if(plan === 'scout') body = buildScoutInstruction(a);
+  else if(plan === 'design') body = buildDesignInstruction(a);
+  else if(plan === 'growth') body = buildGrowthInstruction(a);
+  else if(plan === 'setScoutDesign') body = buildSetScoutDesignInstruction(a);
+  else if(plan === 'setDesignGrowth') body = buildSetDesignGrowthInstruction(a);
+  else if(plan === 'setFull') body = buildSetFullInstruction(a);
+  else if(plan === 'spark') body = buildSparkInstruction(a);
+  if(!body) return '';
+  // 全プラン共通で、分析原則(COMMON_ANALYSIS_PROMPT)をプラン固有の
+  // 指示書(会社情報・分析対象・出力形式など)の先頭に付与する。
+  return COMMON_ANALYSIS_PROMPT + '\n\n' + body;
 }
 
 function buildSparkInstruction(a){
